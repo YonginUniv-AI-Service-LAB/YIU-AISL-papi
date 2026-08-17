@@ -1,0 +1,147 @@
+.onboarding-page {
+  min-height: 100vh;
+  background: #ffffff;
+  padding: 100px 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.onboarding-title {
+  margin: 0 0 65px;
+  font-size: 24px;
+  line-height: 29px;
+  font-weight: 700;
+  text-align: center;
+  color: #000000;
+}
+
+.onboarding-content {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 120px;
+}
+
+.onboarding-left,
+.onboarding-right {
+  width: 480px;
+}
+
+.onboarding-left {
+  display: flex;
+  flex-direction: column;
+  gap: 45px;
+}
+
+.onboarding-section {
+  width: 480px;
+}
+
+.onboarding-section h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 700;
+  color: #000000;
+}
+
+.onboarding-help {
+  margin: -4px 0 8px;
+  font-size: 12px;
+  line-height: 15px;
+  color: #999999;
+}
+
+.onboarding-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.onboarding-option {
+  width: 480px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11.5px 16px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 14px;
+  color: #000000;
+  cursor: pointer;
+}
+
+.onboarding-option:has(input:checked) {
+  background: #f5f5f5;
+  border-color: #000000;
+}
+
+.onboarding-option input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #000000;
+  cursor: pointer;
+}
+
+.onboarding-option input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #000000;
+  cursor: pointer;
+}
+
+.onboarding-custom-input {
+  width: 480px;
+  height: 40px;
+  margin-top: 12px;
+  padding: 0 16px;
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.onboarding-custom-input::placeholder {
+  color: #999999;
+}
+
+.onboarding-actions {
+  width: 480px;
+  display: flex;
+  gap: 12px;
+  margin-top: 36px;
+}
+
+.onboarding-skip-button,
+.onboarding-complete-button {
+  height: 44px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.onboarding-skip-button {
+  width: 235px;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #000000;
+}
+
+.onboarding-complete-button {
+  width: 233px;
+  background: #000000;
+  color: #ffffff;
+  border: none;
+}
+
+.onboarding-error {
+  width: 480px;
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: #e53935;
+}

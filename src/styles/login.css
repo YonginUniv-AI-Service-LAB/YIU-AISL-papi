@@ -1,0 +1,153 @@
+.login-page {
+  min-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-logo {
+  width: 307px;
+  height: 307px;
+  object-fit: contain;
+  margin-top: 52px;
+}
+
+.login-container {
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  margin-top: 27px;
+}
+
+.login-title {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  line-height: 29px;
+  font-weight: 700;
+  color: #000000;
+}
+
+.login-input-group {
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-input {
+  width: 400px;
+  height: 40px;
+  padding: 0 16px;
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  outline: none;
+}
+
+.login-input::placeholder {
+  color: #999999;
+}
+
+.forgot-password {
+  width: 400px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: right;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #757575;
+}
+
+.login-button-group {
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.login-button,
+.guest-button {
+  width: 400px;
+  height: 40px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.login-button {
+  border: none;
+  background: #000000;
+  color: #ffffff;
+}
+
+.guest-button {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #000000;
+}
+
+.signup-guide {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #757575;
+}
+
+.signup-guide button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #000000;
+}
+
+.login-input-error {
+  border-color: #e53935;
+}
+
+.login-error-message {
+  width: 400px;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  margin-top: -6px;
+
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+
+  color: #e53935;
+}
+
+.login-error-message span {
+  width: 14px;
+  height: 14px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  border: 1px solid #e53935;
+  border-radius: 50%;
+
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.login-error-message p {
+  margin: 0;
+}
