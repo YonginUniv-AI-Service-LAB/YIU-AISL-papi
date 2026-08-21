@@ -168,8 +168,8 @@ function OnboardingPage() {
             {error && <p className="onboarding-error">{error}</p>}
 
             <div className="onboarding-actions">
-              <button type="button" onClick={() => navigate('/library')}>건너뛰기</button>
-              <button type="button" onClick={handleComplete}>완료</button>
+              <button className="onboarding-skip-button" type="button" onClick={() => navigate('/library')}>건너뛰기</button>
+              <button className="onboarding-complete-button" type="button" onClick={handleComplete}>완료</button>
             </div>
           </section>
         </div>

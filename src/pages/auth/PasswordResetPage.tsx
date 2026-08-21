@@ -52,12 +52,12 @@ function PasswordResetPage() {
         <div className="password-reset-methods">
           <label className={`password-reset-method ${verificationMethod === 'email' ? 'password-reset-method-selected' : ''}`}>
             <input type="radio" name="verificationMethod" value="email" checked={verificationMethod === 'email'} onChange={() => { setVerificationMethod('email'); setError('') }} />
-            <span>이메일 인증</span>
+            <span>이메일</span>
           </label>
 
           <label className={`password-reset-method ${verificationMethod === 'phone' ? 'password-reset-method-selected' : ''}`}>
             <input type="radio" name="verificationMethod" value="phone" checked={verificationMethod === 'phone'} onChange={() => { setVerificationMethod('phone'); setError('') }} />
-            <span>전화번호 인증</span>
+            <span>전화번호</span>
           </label>
         </div>
 

@@ -1,18 +1,24 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../../styles/memberInformation.css'
 
 function MemberInformationPage() {
+  const navigate = useNavigate()
+
   const [showNicknameModal, setShowNicknameModal] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
+  const [showEmailCodeSentModal, setShowEmailCodeSentModal] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showDeleteSuccessModal, setShowDeleteSuccessModal] = useState(false)
 
+  const [currentNickname, setCurrentNickname] = useState('hong123')
   const [newNickname, setNewNickname] = useState('')
   const [nicknameError, setNicknameError] = useState('')
 
   const [newEmail, setNewEmail] = useState('')
   const [emailCode, setEmailCode] = useState('')
-  const [emailVerified, setEmailVerified] = useState(false)
+  const [emailCodeSent, setEmailCodeSent] = useState(false)
   const [emailError, setEmailError] = useState('')
 
   const [currentPassword, setCurrentPassword] = useState('')
@@ -30,17 +36,18 @@ function MemberInformationPage() {
       return
     }
 
-    if (newNickname.trim() === 'hong123') {
+    if (newNickname.trim() === currentNickname) {
       setNicknameError('현재 닉네임과 다른 닉네임을 입력해주세요.')
       return
     }
 
+    setCurrentNickname(newNickname.trim())
     setNicknameError('')
     setNewNickname('')
     setShowNicknameModal(false)
   }
 
-  const handleEmailVerification = () => {
+  const handleSendEmailCode = () => {
     if (!newEmail.trim()) {
       setEmailError('새 이메일을 입력해주세요.')
       return
@@ -51,13 +58,9 @@ function MemberInformationPage() {
       return
     }
 
-    if (!emailCode.trim()) {
-      setEmailError('인증번호를 입력해주세요.')
-      return
-    }
-
     setEmailError('')
-    setEmailVerified(true)
+    setEmailCodeSent(true)
+    setShowEmailCodeSentModal(true)
   }
 
   const handleEmailSave = () => {
@@ -71,20 +74,20 @@ function MemberInformationPage() {
       return
     }
 
-    if (!emailCode.trim()) {
-      setEmailError('인증번호를 입력해주세요.')
+    if (!emailCodeSent) {
+      setEmailError('인증번호를 먼저 받아주세요.')
       return
     }
 
-    if (!emailVerified) {
-      setEmailError('이메일 인증을 완료해주세요.')
+    if (!emailCode.trim()) {
+      setEmailError('인증번호를 입력해주세요.')
       return
     }
 
     setEmailError('')
     setNewEmail('')
     setEmailCode('')
-    setEmailVerified(false)
+    setEmailCodeSent(false)
     setShowEmailModal(false)
   }
 
@@ -121,6 +124,16 @@ function MemberInformationPage() {
     setShowPasswordModal(false)
   }
 
+  const handleDeleteAccount = () => {
+    setShowDeleteModal(false)
+    setShowDeleteSuccessModal(true)
+  }
+
+  const handleDeleteSuccessConfirm = () => {
+    setShowDeleteSuccessModal(false)
+    navigate('/login')
+  }
+
   const closeNicknameModal = () => {
     setShowNicknameModal(false)
     setNewNickname('')
@@ -129,9 +142,10 @@ function MemberInformationPage() {
 
   const closeEmailModal = () => {
     setShowEmailModal(false)
+    setShowEmailCodeSentModal(false)
     setNewEmail('')
     setEmailCode('')
-    setEmailVerified(false)
+    setEmailCodeSent(false)
     setEmailError('')
   }
 
@@ -169,9 +183,8 @@ function MemberInformationPage() {
           <div className="member-info-card">
             <div>
               <span className="member-info-label">닉네임</span>
-              <strong>hong123</strong>
+              <strong>{currentNickname}</strong>
             </div>
-
             <button type="button" onClick={() => setShowNicknameModal(true)}>변경</button>
           </div>
 
@@ -180,7 +193,6 @@ function MemberInformationPage() {
               <span className="member-info-label">이메일</span>
               <strong>xxx@email.com</strong>
             </div>
-
             <button type="button" onClick={() => setShowEmailModal(true)}>변경</button>
           </div>
 
@@ -189,7 +201,6 @@ function MemberInformationPage() {
               <span className="member-info-label">비밀번호</span>
               <strong>••••••••</strong>
             </div>
-
             <button type="button" onClick={() => setShowPasswordModal(true)}>변경</button>
           </div>
 
@@ -210,7 +221,7 @@ function MemberInformationPage() {
             <div className="member-modal-body">
               <div className="member-modal-current">
                 <span>현재 닉네임</span>
-                <strong>hong123</strong>
+                <strong>{currentNickname}</strong>
               </div>
 
               <div className="member-modal-field">
@@ -239,15 +250,15 @@ function MemberInformationPage() {
             <div className="member-modal-body">
               <div className="member-modal-field">
                 <label htmlFor="newEmail">새 이메일</label>
-                <input id="newEmail" type="email" placeholder="새 이메일 입력" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setEmailVerified(false); setEmailError('') }} />
+                <input id="newEmail" type="email" placeholder="새 이메일 입력" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setEmailCodeSent(false); setEmailError('') }} />
               </div>
 
               <div className="member-modal-field">
                 <label htmlFor="emailCode">인증번호</label>
 
                 <div className="member-email-verification-row">
-                  <input id="emailCode" type="text" placeholder="인증번호 입력" value={emailCode} onChange={(e) => { setEmailCode(e.target.value); setEmailVerified(false); setEmailError('') }} />
-                  <button type="button" onClick={handleEmailVerification}>{emailVerified ? '인증 완료' : '이메일 인증'}</button>
+                  <input id="emailCode" type="text" placeholder="인증번호 입력" value={emailCode} onChange={(e) => { setEmailCode(e.target.value); setEmailError('') }} />
+                  <button type="button" onClick={handleSendEmailCode}>인증번호 보내기</button>
                 </div>
 
                 {emailError && <p className="member-modal-error">{emailError}</p>}
@@ -258,6 +269,15 @@ function MemberInformationPage() {
               <button className="member-modal-cancel" type="button" onClick={closeEmailModal}>취소</button>
               <button className="member-modal-save" type="button" onClick={handleEmailSave}>저장</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showEmailCodeSentModal && (
+        <div className="member-modal-overlay">
+          <div className="member-success-modal">
+            <p>인증번호가 전송되었습니다.</p>
+            <button type="button" onClick={() => setShowEmailCodeSentModal(false)}>확인</button>
           </div>
         </div>
       )}
@@ -312,8 +332,17 @@ function MemberInformationPage() {
 
             <div className="member-modal-footer">
               <button className="member-modal-cancel" type="button" onClick={() => setShowDeleteModal(false)}>취소</button>
-              <button className="member-delete-confirm" type="button">탈퇴</button>
+              <button className="member-delete-confirm" type="button" onClick={handleDeleteAccount}>탈퇴</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteSuccessModal && (
+        <div className="member-modal-overlay">
+          <div className="member-success-modal member-delete-success-modal">
+            <p>회원 탈퇴가 완료되었습니다.</p>
+            <button type="button" onClick={handleDeleteSuccessConfirm}>확인</button>
           </div>
         </div>
       )}

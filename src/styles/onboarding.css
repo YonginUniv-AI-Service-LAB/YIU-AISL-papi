@@ -77,14 +77,7 @@
   border-color: #000000;
 }
 
-.onboarding-option input[type='radio'] {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  accent-color: #000000;
-  cursor: pointer;
-}
-
+.onboarding-option input[type='radio'],
 .onboarding-option input[type='checkbox'] {
   width: 18px;
   height: 18px;
@@ -116,26 +109,28 @@
   margin-top: 36px;
 }
 
-.onboarding-skip-button,
-.onboarding-complete-button {
-  height: 44px;
+.onboarding-skip-button {
+  flex: 1;
+  height: 40px;
+  border: 1px solid #000000;
   border-radius: 8px;
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 700;
 }
 
-.onboarding-skip-button {
-  width: 235px;
-  background: #ffffff;
-  color: #000000;
-  border: 1px solid #000000;
-}
-
 .onboarding-complete-button {
-  width: 233px;
+  flex: 1;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
   background: #000000;
   color: #ffffff;
-  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .onboarding-error {
