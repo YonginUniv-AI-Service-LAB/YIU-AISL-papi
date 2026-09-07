@@ -14,26 +14,9 @@
   color: #000000;
 }
 
-.onboarding-content {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 120px;
-}
-
-.onboarding-left,
-.onboarding-right {
-  width: 480px;
-}
-
-.onboarding-left {
-  display: flex;
-  flex-direction: column;
-  gap: 45px;
-}
-
 .onboarding-section {
   width: 480px;
+  margin: 0 auto;
 }
 
 .onboarding-section h2 {
@@ -42,13 +25,6 @@
   line-height: 18px;
   font-weight: 700;
   color: #000000;
-}
-
-.onboarding-help {
-  margin: -4px 0 8px;
-  font-size: 12px;
-  line-height: 15px;
-  color: #999999;
 }
 
 .onboarding-options {
@@ -77,7 +53,6 @@
   border-color: #000000;
 }
 
-.onboarding-option input[type='radio'],
 .onboarding-option input[type='checkbox'] {
   width: 18px;
   height: 18px;

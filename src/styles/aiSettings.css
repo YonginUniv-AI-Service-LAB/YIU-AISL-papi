@@ -84,7 +84,7 @@
 
 .ai-settings-field {
   width: 480px;
-  display: lex;
+  display: flex;
   flex-direction: column;
   gap: 8px;
   margin-bottom: 24px;
@@ -97,8 +97,7 @@
   color: #000000;
 }
 
-.ai-settings-field input,
-.ai-settings-field select {
+.ai-settings-field input {
   width: 480px;
   height: 40px;
   padding: 0 16px;
@@ -125,10 +124,6 @@
 
 .ai-settings-field input::placeholder,
 .ai-settings-field textarea::placeholder {
-  color: #999999;
-}
-
-.ai-settings-field select:invalid {
   color: #999999;
 }
 
