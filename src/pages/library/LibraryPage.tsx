@@ -10,12 +10,16 @@ const papers = [
   { id: 6, title:"논문 제목", status: "준비 완료", author: "안여진 외 2명", org: "용인대학교", year: "", journal: "", progress: 0 },
 ];
 
+const years = ["2026", "2025", "2024", "2023", "2022", "2021"];
 
 const recentItems = ["논문 관련 질문", "논문 내용 요약", "우선 순위 추천"];
 function LibraryPage() {
   const [isUploadOpen, setIsUploadOpen ] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isYearOpen, setIsYearOpen] = useState(false);
+  const [selectedYears, setSelectedYears] = useState<string[]>([]);
+  const [yearSearch, setYearSearch] = useState("");
   return (
     <div className="library-layout">
       <aside className="sidebar">
@@ -65,8 +69,46 @@ function LibraryPage() {
           className="sort-row">
             <button className="sort-dropdown">최신순 ▾</button>
             <div className="sort-right">
-              <button className="year-dropdown">연도 ▾</button>
+              <button 
+                 className="year-dropdown"
+                 onClick={() => setIsYearOpen(!isYearOpen)}
+              >
+                 연도 ▾
+              </button>
               <button className="confirm-button">확인</button> 
+              {isYearOpen && (
+                <div className="year-popup">
+                  <input
+                    type="text"
+                    className="year-search"
+                    placeholder="Search"
+                    value={yearSearch}
+                    onChange={(e) => setYearSearch(e.target.value)}
+    />
+    <ul className="year-list">
+      {years
+        .filter((year) => year.includes(yearSearch))
+        .map((year) => (
+          <li key={year} className="year-item">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={selectedYears.includes(year)}
+                onChange={() => {
+                  if (selectedYears.includes(year)) {
+                    setSelectedYears(selectedYears.filter((y) => y !== year));
+                  } else {
+                    setSelectedYears([...selectedYears, year]);
+                  }
+                }}
+              />
+              {year}
+            </label>
+          </li>
+        ))}
+    </ul>
+  </div>
+)}
                </div>          
                </div>
                <div className="card-grid">
