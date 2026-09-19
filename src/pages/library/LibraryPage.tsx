@@ -1,3 +1,4 @@
+import { useState } from "react";
 import "./LibraryPage.css";
 
 const papers = [ 
@@ -12,6 +13,7 @@ const papers = [
 
 const recentItems = ["논문 관련 질문", "논문 내용 요약", "우선 순위 추천"];
 function LibraryPage() {
+  const [isUploadOpen, setIsUploadOpen ] = useState(false);
   return (
     <div className="library-layout">
       <aside className="sidebar">
@@ -44,7 +46,7 @@ function LibraryPage() {
         <main className="main-content">
           <div className="search-row">
             <input type="text" className="search-input" placeholder="논문 제목, 저자, ID 검색" />
-            <button className="upload-button">업로드</button>
+            <button className="upload-button" onClick={() => setIsUploadOpen(true)}>업로드</button>
           </div>
           <div className="filter-row">
             <label className="checkbox-label">
@@ -124,9 +126,37 @@ function LibraryPage() {
                                  ))}
           </div>
         </main>
-        </div>
-        )
-      }
+        {isUploadOpen && (
+          <div className="modal-overlay">
+            <div className="modal-box">
+              <div className="modal-header">
+                <span className="modal-title">PDF 업로드</span>
+                <button className="modal-close" onClick={() => setIsUploadOpen(false)}>x</button>
+              </div>
 
+              <div className="upload-dropzone">
+                <div className="upload-icon">⬆️</div>
+                <div>Drag&Drop</div>
+                <div>또는 파일 선택</div>
+            </div>
+
+            <div className="upload-divider">
+              <div className="upload-divider-line" />
+              Or
+              <div className="upload-divider-line" />
+            </div>
+
+            <input type="text" className="url-input" placeholder="http://example.com" />
+
+            <div className="modal-footer">
+              <button className="modal-cancel" onClick={() => setIsUploadOpen(false)}>취소</button>
+              <button className="modal-save" onClick={() => setIsUploadOpen(false)}>저장</button>
+            </div>
+        </div>
+      </div>
+    )}
+    </div>
+    )
+}
 
 export default LibraryPage
