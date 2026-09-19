@@ -14,6 +14,7 @@ const papers = [
 const recentItems = ["논문 관련 질문", "논문 내용 요약", "우선 순위 추천"];
 function LibraryPage() {
   const [isUploadOpen, setIsUploadOpen ] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   return (
     <div className="library-layout">
       <aside className="sidebar">
@@ -79,7 +80,7 @@ function LibraryPage() {
                       <span className="status-badge">
                         <span className="status-dot" /> {paper.status}
                       </span>
-                      <button className="close-button">x</button>
+                      <button className="close-button" onClick={() => setIsDeleteOpen(true)}>x</button>
                     </div>
                   </div>
 
@@ -154,6 +155,24 @@ function LibraryPage() {
             </div>
         </div>
       </div>
+    )}
+    {isDeleteOpen && (
+      <div className="modal-overlay">
+        <div className="modal-box">
+          <div className="modal-header">
+            <span className="modal-title">삭제 확인</span>
+            <button className="modal-close" onClick={() => setIsDeleteOpen(false)}>x</button>
+          </div>
+
+          <p>이 논문을 삭제하시겠습니까?</p>
+          <p>삭제 후 복구할 수 없습니다.</p>
+          
+          <div className="modal-footer">
+            <button className="modal-cancel" onClick={() => setIsDeleteOpen(false)}>취소</button>
+            <button className="modal-save" onClick ={() => setIsDeleteOpen(false)}>삭제</button> 
+          </div>
+        </div>
+      </div> 
     )}
     </div>
     )
