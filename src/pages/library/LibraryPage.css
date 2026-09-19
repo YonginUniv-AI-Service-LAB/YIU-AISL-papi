@@ -158,6 +158,10 @@
     display: flex; flex-direction: column; gap: 10
 }
 
+.paper-card.selected {
+  background: #e0e0e0;
+}
+
 .card-header {
     display: flex;
     justify-content: space-between;

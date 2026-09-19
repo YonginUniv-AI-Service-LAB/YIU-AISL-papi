@@ -15,6 +15,7 @@ const recentItems = ["논문 관련 질문", "논문 내용 요약", "우선 순
 function LibraryPage() {
   const [isUploadOpen, setIsUploadOpen ] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   return (
     <div className="library-layout">
       <aside className="sidebar">
@@ -70,10 +71,23 @@ function LibraryPage() {
                </div>
                <div className="card-grid">
                {papers.map((paper) => (
-                <div key={paper.id} className="paper-card">
+                <div 
+                  key={paper.id} 
+                  className={`paper-card ${selectedIds.includes(paper.id) ? "selected" : ""}`}
+                  >
                   <div className="card-header">
                     <label className="checkbox-laber">
-                      <input type="checkbox" />
+                      <input 
+                        type="checkbox"
+                        checked={selectedIds.includes(paper.id)}
+                        onChange={ () => {
+                          if (selectedIds.includes(paper.id)) {
+                            setSelectedIds(selectedIds.filter((id) => id !== paper.id));
+                        } else {
+                          setSelectedIds([...selectedIds, paper.id]);
+                        }
+                       }}
+                      />
                       <span className="card-title">{paper.title}</span>
                     </label>
                     <div className="card-header-right">
