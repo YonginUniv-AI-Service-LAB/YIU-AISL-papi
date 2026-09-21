@@ -1,53 +1,101 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../../styles/readerSidebar.css'
+import { HomeIcon, LogoutIcon, PencilIcon, SearchIcon, SettingsIcon, SidebarIcon, TrashIcon } from './ReaderIcons'
 
-const recentChats = ['Transfomer 구조', 'RAG 논문 구조', '논문 관련 질문', 'CLIP']
+type ReaderSidebarProps = {
+  isOpen: boolean
+  onToggle: () => void
+}
 
-function ReaderSidebar() {
+function ReaderSidebar({ isOpen, onToggle }: ReaderSidebarProps) {
+  const navigate = useNavigate()
+  const [chats, setChats] = useState(['Transfomer 구조', 'RAG 논문 구조', '논문 관련 질문', 'CLIP'])
+  const [activeChat, setActiveChat] = useState('RAG 논문 구조')
+  const [menuChat, setMenuChat] = useState<string | null>(null)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+
+  const closeMenus = () => {
+    setMenuChat(null)
+    setIsUserMenuOpen(false)
+  }
+
+  const deleteChat = (chat: string) => {
+    setChats(chats.filter((item) => item !== chat))
+    closeMenus()
+  }
+
   return (
-    <aside className="reader-sidebar">
+    <aside className={`reader-sidebar ${isOpen ? '' : 'reader-sidebar-closed'}`}>
+      {(menuChat || isUserMenuOpen) && <div className="reader-menu-backdrop" onClick={closeMenus} />}
+
       <div className="reader-sidebar-header">
-        <h1 className="reader-sidebar-title">논문 챗</h1>
-        <button className="reader-sidebar-toggle" type="button" aria-label="사이드바 닫기">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <line x1="9" y1="3" x2="9" y2="21" />
-          </svg>
+        {isOpen && <h1 className="reader-sidebar-title">논문 챗</h1>}
+        <button className="reader-sidebar-toggle" type="button" aria-label={isOpen ? '사이드바 닫기' : '사이드바 열기'} onClick={onToggle}>
+          <SidebarIcon />
         </button>
       </div>
 
       <nav className="reader-sidebar-menu">
-        <button className="reader-sidebar-menu-item" type="button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />
-          </svg>
-          홈
+        <button className="reader-sidebar-menu-item" type="button" onClick={() => navigate('/library')}>
+          <HomeIcon />
+          {isOpen && '홈'}
         </button>
         <button className="reader-sidebar-menu-item" type="button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16" y2="16" />
-          </svg>
-          탐색
+          <SearchIcon />
+          {isOpen && '탐색'}
         </button>
       </nav>
 
-      <div className="reader-sidebar-recent">
-        <p className="reader-sidebar-recent-title">최근</p>
-        <ul className="reader-sidebar-recent-list">
-          {recentChats.map((chat) => (
-            <li key={chat} className={`reader-sidebar-recent-item ${chat === 'RAG 논문 구조' ? 'reader-sidebar-recent-item-active' : ''}`}>
-              <span>{chat}</span>
-              <button className="reader-sidebar-more" type="button">···</button>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {isOpen && (
+        <div className="reader-sidebar-recent">
+          <p className="reader-sidebar-recent-title">최근</p>
+          <ul className="reader-sidebar-recent-list">
+            {chats.map((chat) => (
+              <li key={chat} className={`reader-sidebar-recent-item ${chat === activeChat ? 'reader-sidebar-recent-item-active' : ''}`} onClick={() => setActiveChat(chat)}>
+                <span>{chat}</span>
+                <button className="reader-sidebar-more" type="button" onClick={(event) => { event.stopPropagation(); setMenuChat(chat) }}>···</button>
 
-      <div className="reader-sidebar-user">
-        <div className="reader-sidebar-avatar" />
-        <span className="reader-sidebar-user-name">유채현</span>
-        <button className="reader-sidebar-more reader-sidebar-user-more" type="button">···</button>
-      </div>
+                {menuChat === chat && (
+                  <div className="reader-menu reader-sidebar-chat-menu" onClick={(event) => event.stopPropagation()}>
+                    <button className="reader-menu-item" type="button" onClick={closeMenus}>
+                      <PencilIcon />
+                      이름 변경
+                    </button>
+                    <div className="reader-menu-divider" />
+                    <button className="reader-menu-item" type="button" onClick={() => deleteChat(chat)}>
+                      <TrashIcon />
+                      삭제
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {isOpen && (
+        <div className="reader-sidebar-user">
+          <div className="reader-sidebar-avatar" />
+          <span className="reader-sidebar-user-name">유채현</span>
+          <button className="reader-sidebar-more reader-sidebar-user-more" type="button" onClick={() => setIsUserMenuOpen(true)}>···</button>
+
+          {isUserMenuOpen && (
+            <div className="reader-menu reader-sidebar-user-menu">
+              <button className="reader-menu-item" type="button" onClick={() => navigate('/settings')}>
+                <SettingsIcon />
+                설정
+              </button>
+              <div className="reader-menu-divider" />
+              <button className="reader-menu-item reader-menu-item-danger" type="button" onClick={() => navigate('/login')}>
+                <LogoutIcon />
+                로그아웃
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </aside>
   )
 }

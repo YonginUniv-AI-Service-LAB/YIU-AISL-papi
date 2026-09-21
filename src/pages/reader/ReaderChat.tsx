@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import '../../styles/readerChat.css'
+import { ArrowUpIcon } from './ReaderIcons'
+
+type ReaderChatProps = {
+  isViewerOpen: boolean
+  onOpenViewer: () => void
+}
 
 type Message = {
   role: 'user' | 'ai'
@@ -23,7 +29,7 @@ const sampleAnswers: Record<string, string> = {
 
 const defaultAnswer = 'AI 답변이 여기에 표시됩니다. 서버와 연결되면 실제 답변으로 바뀌어요.'
 
-function ReaderChat() {
+function ReaderChat({ isViewerOpen, onOpenViewer }: ReaderChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
 
@@ -52,9 +58,13 @@ function ReaderChat() {
   return (
     <section className="reader-chat">
       <div className="reader-chat-tools">
-        {toolButtons.map((tool) => (
-          <button key={tool} className="reader-chat-tool-button" type="button">{tool}</button>
-        ))}
+        {isViewerOpen ? (
+          toolButtons.map((tool) => (
+            <button key={tool} className="reader-chat-tool-button" type="button">{tool}</button>
+          ))
+        ) : (
+          <button className="reader-chat-tool-button" type="button" onClick={onOpenViewer}>PDF 뷰어 열기</button>
+        )}
       </div>
 
       <div className="reader-chat-messages">
@@ -88,10 +98,7 @@ function ReaderChat() {
       <form className="reader-chat-input-box" onSubmit={handleSubmit}>
         <input className="reader-chat-input" type="text" placeholder="논문에 대해 질문해보세요." value={inputValue} onChange={(event) => setInputValue(event.target.value)} />
         <button className="reader-chat-send-button" type="submit" aria-label="전송">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="12" y1="19" x2="12" y2="5" />
-            <polyline points="5 12 12 5 19 12" />
-          </svg>
+          <ArrowUpIcon />
         </button>
       </form>
     </section>

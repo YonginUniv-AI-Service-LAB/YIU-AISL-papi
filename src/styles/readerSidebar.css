@@ -157,3 +157,42 @@
   height: 24px;
   border-radius: 6px;
 }
+
+.reader-sidebar-closed {
+  width: 64px;
+}
+
+.reader-sidebar-closed .reader-sidebar-header {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.reader-sidebar-closed .reader-sidebar-menu {
+  flex: 1;
+  border-bottom: none;
+}
+
+.reader-sidebar-closed .reader-sidebar-menu-item {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.reader-sidebar-recent-item {
+  position: relative;
+}
+
+.reader-sidebar-chat-menu {
+  top: 40px;
+  left: 136px;
+  min-width: 150px;
+}
+
+.reader-sidebar-user {
+  position: relative;
+}
+
+.reader-sidebar-user-menu {
+  bottom: 56px;
+  left: 72px;
+  min-width: 169px;
+}

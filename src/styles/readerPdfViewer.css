@@ -106,3 +106,13 @@
   line-height: 30px;
   color: #000000;
 }
+
+.reader-pdf-viewer {
+  position: relative;
+}
+
+.reader-pdf-menu {
+  top: 44px;
+  right: 16px;
+  min-width: 160px;
+}
