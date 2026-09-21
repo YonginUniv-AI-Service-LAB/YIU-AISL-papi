@@ -1,4 +1,12 @@
+import { useState } from 'react'
+import type { FormEvent } from 'react'
 import '../../styles/readerChat.css'
+
+type Message = {
+  role: 'user' | 'ai'
+  text: string
+  fromSuggestion?: boolean
+}
 
 const toolButtons = ['추천 질문', '요약', '재현 가능성']
 
@@ -9,7 +17,38 @@ const suggestedQuestions = [
   '이 논문의 한계점은 무엇인가요?',
 ]
 
+const sampleAnswers: Record<string, string> = {
+  '어떤 모델을 사용했나요?': '이 논문에서는 Transformer 기반 모델을 사용하며 검색 증강 생성(RAG)을 적용하여 외부 문서를 검색한 후 생성 모델에 전달합니다.',
+}
+
+const defaultAnswer = 'AI 답변이 여기에 표시됩니다. 서버와 연결되면 실제 답변으로 바뀌어요.'
+
 function ReaderChat() {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [inputValue, setInputValue] = useState('')
+
+  const askQuestion = (question: string, fromSuggestion: boolean) => {
+    const answer = sampleAnswers[question] ?? defaultAnswer
+
+    setMessages([
+      ...messages,
+      { role: 'user', text: question, fromSuggestion },
+      { role: 'ai', text: answer },
+    ])
+  }
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const question = inputValue.trim()
+    if (!question) {
+      return
+    }
+
+    askQuestion(question, false)
+    setInputValue('')
+  }
+
   return (
     <section className="reader-chat">
       <div className="reader-chat-tools">
@@ -18,26 +57,43 @@ function ReaderChat() {
         ))}
       </div>
 
-      <div className="reader-chat-messages" />
-
-      <div className="reader-chat-suggestions">
-        <p className="reader-chat-suggestions-title">추천 질문</p>
-        <div className="reader-chat-suggestions-list">
-          {suggestedQuestions.map((question) => (
-            <button key={question} className="reader-chat-suggestion" type="button">{question}</button>
-          ))}
-        </div>
+      <div className="reader-chat-messages">
+        {messages.map((message, index) =>
+          message.role === 'user' ? (
+            <div key={index} className={`reader-chat-bubble-user ${message.fromSuggestion ? 'reader-chat-bubble-user-suggested' : ''}`}>
+              {message.text}
+            </div>
+          ) : (
+            <div key={index} className="reader-chat-bubble-ai">
+              <p className="reader-chat-bubble-ai-text">{message.text}</p>
+              <button className="reader-chat-evidence-button" type="button">📄 논문에서 근거 확인</button>
+            </div>
+          )
+        )}
       </div>
 
-      <div className="reader-chat-input-box">
-        <input className="reader-chat-input" type="text" placeholder="논문에 대해 질문해보세요." />
-        <button className="reader-chat-send-button" type="button" aria-label="전송">
+      {messages.length === 0 && (
+        <div className="reader-chat-suggestions">
+          <p className="reader-chat-suggestions-title">추천 질문</p>
+          <div className="reader-chat-suggestions-list">
+            {suggestedQuestions.map((question) => (
+              <button key={question} className="reader-chat-suggestion" type="button" onClick={() => askQuestion(question, true)}>
+                {question}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <form className="reader-chat-input-box" onSubmit={handleSubmit}>
+        <input className="reader-chat-input" type="text" placeholder="논문에 대해 질문해보세요." value={inputValue} onChange={(event) => setInputValue(event.target.value)} />
+        <button className="reader-chat-send-button" type="submit" aria-label="전송">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="12" y1="19" x2="12" y2="5" />
             <polyline points="5 12 12 5 19 12" />
           </svg>
         </button>
-      </div>
+      </form>
     </section>
   )
 }
