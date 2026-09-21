@@ -86,7 +86,6 @@ function LoginPage() {
 
         <div className="login-button-group">
           <button className="login-button" type="button" onClick={handleLogin}>로그인</button>
-          <button className="guest-button" type="button" onClick={() => navigate('/library')}>게스트로 시작하기</button>
         </div>
 
         <div className="signup-guide">

@@ -4,7 +4,6 @@ import '../../styles/aiSettings.css'
 function AISettingsPage() {
   const [name, setName] = useState('')
   const [prompt, setPrompt] = useState('')
-  const [responseStyle, setResponseStyle] = useState('')
   const [error, setError] = useState('')
 
   const handleSave = () => {
@@ -15,11 +14,6 @@ function AISettingsPage() {
 
     if (!prompt.trim()) {
       setError('기본 프롬프트를 입력해주세요.')
-      return
-    }
-
-    if (!responseStyle) {
-      setError('AI 응답 스타일을 선택해주세요.')
       return
     }
 
@@ -57,16 +51,6 @@ function AISettingsPage() {
           <div className="ai-settings-field">
             <label htmlFor="defaultPrompt">기본 프롬프트</label>
             <textarea id="defaultPrompt" placeholder="기본 프롬프트를 입력하세요." value={prompt} onChange={(e) => { setPrompt(e.target.value); setError('') }} />
-          </div>
-
-          <div className="ai-settings-field">
-            <label htmlFor="responseStyle">AI 응답 스타일</label>
-            <select id="responseStyle" value={responseStyle} onChange={(e) => { setResponseStyle(e.target.value); setError('') }}>
-              <option value="">응답 스타일 선택</option>
-              <option value="concise">간결하게</option>
-              <option value="detailed">자세하게</option>
-              <option value="friendly">친근하게</option>
-            </select>
           </div>
 
           {error && <p className="ai-settings-error">{error}</p>}
