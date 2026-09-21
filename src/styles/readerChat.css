@@ -101,7 +101,8 @@
   color: #000000;
 }
 
-.reader-chat-evidence-button:hover {
+.reader-chat-evidence-button:hover,
+.reader-chat-evidence-button-active {
   border-color: #79747e;
   background: #f2f2f7;
   box-shadow: 0 4px 2px rgba(0, 0, 0, 0.08);

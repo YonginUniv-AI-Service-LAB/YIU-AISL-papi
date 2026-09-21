@@ -128,3 +128,8 @@
   line-height: 19px;
   color: #ffffff;
 }
+
+.paper-select-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

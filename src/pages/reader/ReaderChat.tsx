@@ -4,10 +4,16 @@ import '../../styles/readerChat.css'
 import { ArrowUpIcon } from './ReaderIcons'
 import ReaderPaperSelectModal from './ReaderPaperSelectModal'
 import ReaderSummary from './ReaderSummary'
+import ReaderCompare from './ReaderCompare'
 
 type ReaderChatProps = {
   isViewerOpen: boolean
   onOpenViewer: () => void
+  comparePapers: string[]
+  onCompare: (papers: string[]) => void
+  onCloseCompare: () => void
+  evidenceId: number | null
+  onShowEvidence: (id: number) => void
 }
 
 type Message = {
@@ -16,7 +22,7 @@ type Message = {
   fromSuggestion?: boolean
 }
 
-const toolButtons = ['추천 질문', '요약', '재현 가능성']
+const toolButtons = ['추천 질문', '비교', '요약', '재현 가능성']
 
 const suggestedQuestions = [
   '이 논문의 핵심 기여는 무엇인가요?',
@@ -31,15 +37,19 @@ const sampleAnswers: Record<string, string> = {
 
 const defaultAnswer = 'AI 답변이 여기에 표시됩니다. 서버와 연결되면 실제 답변으로 바뀌어요.'
 
-function ReaderChat({ isViewerOpen, onOpenViewer }: ReaderChatProps) {
+function ReaderChat({ isViewerOpen, onOpenViewer, comparePapers, onCompare, onCloseCompare, evidenceId, onShowEvidence }: ReaderChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isSummarySelectOpen, setIsSummarySelectOpen] = useState(false)
   const [isSummaryOpen, setIsSummaryOpen] = useState(false)
+  const [isCompareSelectOpen, setIsCompareSelectOpen] = useState(false)
 
   const handleToolClick = (tool: string) => {
     if (tool === '요약') {
       setIsSummarySelectOpen(true)
+    }
+    if (tool === '비교') {
+      setIsCompareSelectOpen(true)
     }
   }
 
@@ -70,7 +80,7 @@ function ReaderChat({ isViewerOpen, onOpenViewer }: ReaderChatProps) {
       <div className="reader-chat-tools">
         {isViewerOpen ? (
           toolButtons.map((tool) => (
-            <button key={tool} className={`reader-chat-tool-button ${tool === '요약' && isSummaryOpen ? 'reader-chat-tool-button-active' : ''}`} type="button" onClick={() => handleToolClick(tool)}>{tool}</button>
+            <button key={tool} className={`reader-chat-tool-button ${(tool === '요약' && isSummaryOpen) || (tool === '비교' && comparePapers.length > 0) ? 'reader-chat-tool-button-active' : ''}`} type="button" onClick={() => handleToolClick(tool)}>{tool}</button>
           ))
         ) : (
           <button className="reader-chat-tool-button" type="button" onClick={onOpenViewer}>PDF 뷰어 열기</button>
@@ -86,7 +96,7 @@ function ReaderChat({ isViewerOpen, onOpenViewer }: ReaderChatProps) {
           ) : (
             <div key={index} className="reader-chat-bubble-ai">
               <p className="reader-chat-bubble-ai-text">{message.text}</p>
-              <button className="reader-chat-evidence-button" type="button">📄 논문에서 근거 확인</button>
+              <button className={`reader-chat-evidence-button ${evidenceId === index ? 'reader-chat-evidence-button-active' : ''}`} type="button" onClick={() => onShowEvidence(index)}>📄 논문에서 근거 확인</button>
             </div>
           )
         )}
@@ -115,11 +125,30 @@ function ReaderChat({ isViewerOpen, onOpenViewer }: ReaderChatProps) {
           onConfirm={() => {
             setIsSummarySelectOpen(false)
             setIsSummaryOpen(true)
+            onCloseCompare()
           }}
         />
       )}
 
       {isSummaryOpen && <ReaderSummary onClose={() => setIsSummaryOpen(false)} />}
+
+      {isCompareSelectOpen && (
+        <ReaderPaperSelectModal
+          title="비교할 논문을 선택하세요"
+          confirmLabel="비교하기"
+          showCancel
+          minSelect={2}
+          overlay="panel"
+          onClose={() => setIsCompareSelectOpen(false)}
+          onConfirm={(papers) => {
+            setIsCompareSelectOpen(false)
+            setIsSummaryOpen(false)
+            onCompare(papers)
+          }}
+        />
+      )}
+
+      {comparePapers.length >= 2 && <ReaderCompare paperA={comparePapers[0]} paperB={comparePapers[1]} onClose={onCloseCompare} />}
 
       <form className="reader-chat-input-box" onSubmit={handleSubmit}>
         <input className="reader-chat-input" type="text" placeholder="논문에 대해 질문해보세요." value={inputValue} onChange={(event) => setInputValue(event.target.value)} />

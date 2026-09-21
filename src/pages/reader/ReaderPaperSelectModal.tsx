@@ -6,6 +6,7 @@ type ReaderPaperSelectModalProps = {
   title: string
   confirmLabel: string
   showCancel?: boolean
+  minSelect?: number
   overlay: 'page' | 'panel'
   onClose: () => void
   onConfirm: (selectedPapers: string[]) => void
@@ -13,7 +14,7 @@ type ReaderPaperSelectModalProps = {
 
 const papers = ['Paper Title_1', 'Paper Title_2', 'Paper Title_3', 'Paper Title_4']
 
-function ReaderPaperSelectModal({ title, confirmLabel, showCancel = false, overlay, onClose, onConfirm }: ReaderPaperSelectModalProps) {
+function ReaderPaperSelectModal({ title, confirmLabel, showCancel = false, minSelect = 0, overlay, onClose, onConfirm }: ReaderPaperSelectModalProps) {
   const [searchText, setSearchText] = useState('')
   const [selectedPapers, setSelectedPapers] = useState<string[]>([])
 
@@ -53,7 +54,7 @@ function ReaderPaperSelectModal({ title, confirmLabel, showCancel = false, overl
           {showCancel && (
             <button className="paper-select-button" type="button" onClick={onClose}>취소</button>
           )}
-          <button className="paper-select-button" type="button" onClick={() => onConfirm(selectedPapers)}>{confirmLabel}</button>
+          <button className="paper-select-button" type="button" disabled={selectedPapers.length < minSelect} onClick={() => onConfirm(selectedPapers)}>{confirmLabel}</button>
         </div>
       </div>
     </div>
