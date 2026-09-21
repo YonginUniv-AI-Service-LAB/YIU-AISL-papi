@@ -1,0 +1,159 @@
+.reader-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px 20px;
+  background: #f8f9fa;
+  border-right: 1px solid #e5e7eb;
+}
+
+.reader-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+}
+
+.reader-sidebar-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 24px;
+  color: #000000;
+}
+
+.reader-sidebar-toggle {
+  display: flex;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #1e1e1e;
+}
+
+.reader-sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 24px;
+  padding-bottom: 60px;
+  border-bottom: 3px solid #e5e7eb;
+}
+
+.reader-sidebar-menu-item {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 19px;
+  color: #000000;
+  text-align: left;
+}
+
+.reader-sidebar-menu-item:hover {
+  background: #eeeff1;
+}
+
+.reader-sidebar-recent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.reader-sidebar-recent-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 19px;
+  color: #6b7280;
+}
+
+.reader-sidebar-recent-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reader-sidebar-recent-item {
+  height: 36px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0 0 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 17px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.reader-sidebar-recent-item .reader-sidebar-more {
+  visibility: hidden;
+}
+
+.reader-sidebar-recent-item-active {
+  background: #e5e5ea;
+  color: #000000;
+}
+
+.reader-sidebar-recent-item-active .reader-sidebar-more,
+.reader-sidebar-recent-item:hover .reader-sidebar-more {
+  visibility: visible;
+}
+
+.reader-sidebar-more {
+  width: 53px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e1e1e;
+}
+
+.reader-sidebar-user {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px;
+  border-top: 3px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.reader-sidebar-avatar {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #b3b3b3;
+}
+
+.reader-sidebar-user-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 17px;
+  color: #111827;
+}
+
+.reader-sidebar-user-more {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
