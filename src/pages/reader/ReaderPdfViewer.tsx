@@ -4,9 +4,10 @@ import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, HighlighterIcon, PlusIcon
 
 type ReaderPdfViewerProps = {
   onClose: () => void
+  onAddPaper: () => void
 }
 
-function ReaderPdfViewer({ onClose }: ReaderPdfViewerProps) {
+function ReaderPdfViewer({ onClose, onAddPaper }: ReaderPdfViewerProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
@@ -19,7 +20,7 @@ function ReaderPdfViewer({ onClose }: ReaderPdfViewerProps) {
 
         {isMenuOpen && (
           <div className="reader-menu reader-pdf-menu">
-            <button className="reader-menu-item reader-menu-item-large" type="button" onClick={() => setIsMenuOpen(false)}>
+            <button className="reader-menu-item reader-menu-item-large" type="button" onClick={() => { setIsMenuOpen(false); onAddPaper() }}>
               <PlusIcon />
               논문 추가
             </button>

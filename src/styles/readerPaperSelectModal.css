@@ -1,0 +1,130 @@
+.paper-select-overlay {
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.paper-select-overlay-page {
+  position: fixed;
+  align-items: center;
+}
+
+.paper-select-overlay-panel {
+  position: absolute;
+  align-items: flex-start;
+  padding-top: 90px;
+}
+
+.paper-select-modal {
+  width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 24px 15px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.paper-select-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.paper-select-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 22px;
+  color: #000000;
+}
+
+.paper-select-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 25px;
+  font-weight: 400;
+  line-height: 30px;
+  color: #6b7280;
+}
+
+.paper-select-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #6b7280;
+}
+
+.paper-select-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 17px;
+  line-height: 20px;
+}
+
+.paper-select-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.paper-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.paper-select-item {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 22px;
+  color: #000000;
+  cursor: pointer;
+}
+
+.paper-select-item:hover {
+  background: #f9fafb;
+}
+
+.paper-select-checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #111827;
+}
+
+.paper-select-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 6px;
+}
+
+.paper-select-button {
+  height: 40px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #000000;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 19px;
+  color: #ffffff;
+}

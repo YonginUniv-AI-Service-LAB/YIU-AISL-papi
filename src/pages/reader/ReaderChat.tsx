@@ -2,6 +2,8 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import '../../styles/readerChat.css'
 import { ArrowUpIcon } from './ReaderIcons'
+import ReaderPaperSelectModal from './ReaderPaperSelectModal'
+import ReaderSummary from './ReaderSummary'
 
 type ReaderChatProps = {
   isViewerOpen: boolean
@@ -32,6 +34,14 @@ const defaultAnswer = 'AI 답변이 여기에 표시됩니다. 서버와 연결�
 function ReaderChat({ isViewerOpen, onOpenViewer }: ReaderChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
+  const [isSummarySelectOpen, setIsSummarySelectOpen] = useState(false)
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false)
+
+  const handleToolClick = (tool: string) => {
+    if (tool === '요약') {
+      setIsSummarySelectOpen(true)
+    }
+  }
 
   const askQuestion = (question: string, fromSuggestion: boolean) => {
     const answer = sampleAnswers[question] ?? defaultAnswer
@@ -60,7 +70,7 @@ function ReaderChat({ isViewerOpen, onOpenViewer }: ReaderChatProps) {
       <div className="reader-chat-tools">
         {isViewerOpen ? (
           toolButtons.map((tool) => (
-            <button key={tool} className="reader-chat-tool-button" type="button">{tool}</button>
+            <button key={tool} className={`reader-chat-tool-button ${tool === '요약' && isSummaryOpen ? 'reader-chat-tool-button-active' : ''}`} type="button" onClick={() => handleToolClick(tool)}>{tool}</button>
           ))
         ) : (
           <button className="reader-chat-tool-button" type="button" onClick={onOpenViewer}>PDF 뷰어 열기</button>
@@ -94,6 +104,22 @@ function ReaderChat({ isViewerOpen, onOpenViewer }: ReaderChatProps) {
           </div>
         </div>
       )}
+
+      {isSummarySelectOpen && (
+        <ReaderPaperSelectModal
+          title="요약할 논문을 선택하세요."
+          confirmLabel="선택"
+          showCancel
+          overlay="panel"
+          onClose={() => setIsSummarySelectOpen(false)}
+          onConfirm={() => {
+            setIsSummarySelectOpen(false)
+            setIsSummaryOpen(true)
+          }}
+        />
+      )}
+
+      {isSummaryOpen && <ReaderSummary onClose={() => setIsSummaryOpen(false)} />}
 
       <form className="reader-chat-input-box" onSubmit={handleSubmit}>
         <input className="reader-chat-input" type="text" placeholder="논문에 대해 질문해보세요." value={inputValue} onChange={(event) => setInputValue(event.target.value)} />
