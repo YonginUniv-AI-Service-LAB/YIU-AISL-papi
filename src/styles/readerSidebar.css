@@ -196,3 +196,21 @@
   left: 72px;
   min-width: 169px;
 }
+
+.reader-sidebar-rename-input {
+  width: calc(100% - 8px);
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid #93c5fd;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 14px;
+  line-height: 17px;
+  color: #000000;
+  outline: none;
+}
+
+.reader-sidebar-rename-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px #dbeafe;
+}

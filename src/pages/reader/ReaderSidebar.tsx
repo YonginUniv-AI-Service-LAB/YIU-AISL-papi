@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/readerSidebar.css'
 import { HomeIcon, LogoutIcon, PencilIcon, SearchIcon, SettingsIcon, SidebarIcon, TrashIcon } from './ReaderIcons'
@@ -14,6 +15,8 @@ function ReaderSidebar({ isOpen, onToggle }: ReaderSidebarProps) {
   const [activeChat, setActiveChat] = useState('RAG 논문 구조')
   const [menuChat, setMenuChat] = useState<string | null>(null)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [editingChat, setEditingChat] = useState<string | null>(null)
+  const [newName, setNewName] = useState('')
 
   const closeMenus = () => {
     setMenuChat(null)
@@ -23,6 +26,47 @@ function ReaderSidebar({ isOpen, onToggle }: ReaderSidebarProps) {
   const deleteChat = (chat: string) => {
     setChats(chats.filter((item) => item !== chat))
     closeMenus()
+  }
+
+  const startRename = (chat: string) => {
+    setEditingChat(chat)
+    setNewName(chat)
+    closeMenus()
+  }
+
+  const cancelRename = () => {
+    setEditingChat(null)
+  }
+
+  const saveRename = () => {
+    if (editingChat === null) return
+
+    const name = newName.trim()
+
+    if (name === '' || name === editingChat) {
+      cancelRename()
+      return
+    }
+
+    if (chats.includes(name)) {
+      alert('이미 같은 이름의 대화가 있습니다.')
+      return
+    }
+
+    setChats(chats.map((item) => (item === editingChat ? name : item)))
+
+    if (activeChat === editingChat) {
+      setActiveChat(name)
+    }
+
+    setEditingChat(null)
+  }
+
+  const handleRenameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing) return
+
+    if (event.key === 'Enter') saveRename()
+    if (event.key === 'Escape') cancelRename()
   }
 
   return (
@@ -53,12 +97,28 @@ function ReaderSidebar({ isOpen, onToggle }: ReaderSidebarProps) {
           <ul className="reader-sidebar-recent-list">
             {chats.map((chat) => (
               <li key={chat} className={`reader-sidebar-recent-item ${chat === activeChat ? 'reader-sidebar-recent-item-active' : ''}`} onClick={() => setActiveChat(chat)}>
-                <span>{chat}</span>
-                <button className="reader-sidebar-more" type="button" onClick={(event) => { event.stopPropagation(); setMenuChat(chat) }}>···</button>
+                {editingChat === chat ? (
+                  <input
+                    className="reader-sidebar-rename-input"
+                    value={newName}
+                    maxLength={50}
+                    autoFocus
+                    onFocus={(event) => event.target.select()}
+                    onChange={(event) => setNewName(event.target.value)}
+                    onKeyDown={handleRenameKeyDown}
+                    onBlur={saveRename}
+                    onClick={(event) => event.stopPropagation()}
+                  />
+                ) : (
+                  <>
+                    <span>{chat}</span>
+                    <button className="reader-sidebar-more" type="button" onClick={(event) => { event.stopPropagation(); setMenuChat(chat) }}>···</button>
+                  </>
+                )}
 
                 {menuChat === chat && (
                   <div className="reader-menu reader-sidebar-chat-menu" onClick={(event) => event.stopPropagation()}>
-                    <button className="reader-menu-item" type="button" onClick={closeMenus}>
+                    <button className="reader-menu-item" type="button" onClick={() => startRename(chat)}>
                       <PencilIcon />
                       이름 변경
                     </button>
