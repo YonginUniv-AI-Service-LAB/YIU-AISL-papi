@@ -138,7 +138,7 @@ function ReaderSidebar({ isOpen, onToggle }: ReaderSidebarProps) {
       {isOpen && (
         <div className="reader-sidebar-user">
           <div className="reader-sidebar-avatar" />
-          <span className="reader-sidebar-user-name">유채현</span>
+          <span className="reader-sidebar-user-name">용용이</span>
           <button className="reader-sidebar-more reader-sidebar-user-more" type="button" onClick={() => setIsUserMenuOpen(true)}>···</button>
 
           {isUserMenuOpen && (
