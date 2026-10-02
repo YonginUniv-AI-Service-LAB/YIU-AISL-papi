@@ -50,6 +50,7 @@ function ReaderSidebar({ isOpen, onToggle }: ReaderSidebarProps) {
 
     if (chats.includes(name)) {
       alert('이미 같은 이름의 대화가 있습니다.')
+      cancelRename()
       return
     }
 
@@ -98,17 +99,36 @@ function ReaderSidebar({ isOpen, onToggle }: ReaderSidebarProps) {
             {chats.map((chat) => (
               <li key={chat} className={`reader-sidebar-recent-item ${chat === activeChat ? 'reader-sidebar-recent-item-active' : ''}`} onClick={() => setActiveChat(chat)}>
                 {editingChat === chat ? (
-                  <input
-                    className="reader-sidebar-rename-input"
-                    value={newName}
-                    maxLength={50}
-                    autoFocus
-                    onFocus={(event) => event.target.select()}
-                    onChange={(event) => setNewName(event.target.value)}
-                    onKeyDown={handleRenameKeyDown}
-                    onBlur={saveRename}
-                    onClick={(event) => event.stopPropagation()}
-                  />
+                  <div className="reader-sidebar-rename" onClick={(event) => event.stopPropagation()}>
+                    <input
+                      className="reader-sidebar-rename-input"
+                      value={newName}
+                      maxLength={50}
+                      autoFocus
+                      onFocus={(event) => event.target.select()}
+                      onChange={(event) => setNewName(event.target.value)}
+                      onKeyDown={handleRenameKeyDown}
+                      onBlur={cancelRename}
+                    />
+                    <button
+                      className="reader-sidebar-rename-save"
+                      type="button"
+                      aria-label="이름 저장"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={saveRename}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      className="reader-sidebar-rename-cancel"
+                      type="button"
+                      aria-label="이름 변경 취소"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={cancelRename}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 ) : (
                   <>
                     <span>{chat}</span>
