@@ -79,7 +79,7 @@ function LibraryPage() {
         </div>
         <div className="sidebar-footer">
           <div className="avatar" />
-          <span>안여진</span>
+          <span>용용이</span>
         </div>
         </aside>
         <main className="main-content">
