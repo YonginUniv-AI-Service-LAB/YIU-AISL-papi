@@ -355,3 +355,75 @@
   color: #fff;
   cursor: pointer;
 }
+
+.paper-card {
+  cursor: pointer;
+}
+
+.card-title-edit-button {
+  margin-left: 4px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: #9ca3af;
+  cursor: pointer;
+  visibility: hidden;
+}
+
+.paper-card:hover .card-title-edit-button {
+  visibility: visible;
+}
+
+.card-title-edit-button:hover {
+  color: #111827;
+}
+
+.card-title-edit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+}
+
+.card-title-input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid #93c5fd;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 14px;
+  color: #000000;
+  outline: none;
+}
+
+.card-title-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px #dbeafe;
+}
+
+.card-title-save,
+.card-title-cancel {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.card-title-save {
+  background: #111827;
+  color: #ffffff;
+}
+
+.card-title-cancel {
+  background: #e5e7eb;
+  color: #374151;
+}

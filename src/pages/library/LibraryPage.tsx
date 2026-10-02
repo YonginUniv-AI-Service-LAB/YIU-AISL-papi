@@ -1,4 +1,6 @@
 import { useState } from "react";
+import type { KeyboardEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import "./LibraryPage.css";
 
 const papers = [ 
@@ -14,12 +16,43 @@ const years = ["2026", "2025", "2024", "2023", "2022", "2021"];
 
 const recentItems = ["논문 관련 질문", "논문 내용 요약", "우선 순위 추천"];
 function LibraryPage() {
+  const navigate = useNavigate();
+  const [paperList, setPaperList] = useState(papers);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [newTitle, setNewTitle] = useState("");
   const [isUploadOpen, setIsUploadOpen ] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isYearOpen, setIsYearOpen] = useState(false);
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
   const [yearSearch, setYearSearch] = useState("");
+
+  const startEditTitle = (id: number, title: string) => {
+    setEditingId(id);
+    setNewTitle(title);
+  };
+
+  const cancelEditTitle = () => {
+    setEditingId(null);
+  };
+
+  const saveTitle = () => {
+    const title = newTitle.trim();
+
+    if (title !== "") {
+      setPaperList(paperList.map((paper) => (paper.id === editingId ? { ...paper, title } : paper)));
+    }
+
+    setEditingId(null);
+  };
+
+  const handleTitleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing) return;
+
+    if (e.key === "Enter") saveTitle();
+    if (e.key === "Escape") cancelEditTitle();
+  };
+
   return (
     <div className="library-layout">
       <aside className="sidebar">
@@ -112,13 +145,46 @@ function LibraryPage() {
                </div>          
                </div>
                <div className="card-grid">
-               {papers.map((paper) => (
+               {paperList.map((paper) => (
                 <div 
                   key={paper.id} 
                   className={`paper-card ${selectedIds.includes(paper.id) ? "selected" : ""}`}
+                  onClick={() => navigate(`/reader/${paper.id}`)}
                   >
                   <div className="card-header">
-                    <label className="checkbox-laber">
+                    {editingId === paper.id ? (
+                      <div className="card-title-edit" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          className="card-title-input"
+                          value={newTitle}
+                          maxLength={100}
+                          autoFocus
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setNewTitle(e.target.value)}
+                          onKeyDown={handleTitleKeyDown}
+                          onBlur={cancelEditTitle}
+                        />
+                        <button
+                          type="button"
+                          className="card-title-save"
+                          aria-label="제목 저장"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={saveTitle}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          type="button"
+                          className="card-title-cancel"
+                          aria-label="제목 변경 취소"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={cancelEditTitle}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                    <label className="checkbox-laber" onClick={(e) => e.stopPropagation()}>
                       <input 
                         type="checkbox"
                         checked={selectedIds.includes(paper.id)}
@@ -131,12 +197,33 @@ function LibraryPage() {
                        }}
                       />
                       <span className="card-title">{paper.title}</span>
+                      <button
+                        type="button"
+                        className="card-title-edit-button"
+                        aria-label="제목 변경"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          startEditTitle(paper.id, paper.title);
+                        }}
+                      >
+                        ✎
+                      </button>
                     </label>
+                    )}
                     <div className="card-header-right">
                       <span className="status-badge">
                         <span className="status-dot" /> {paper.status}
                       </span>
-                      <button className="close-button" onClick={() => setIsDeleteOpen(true)}>x</button>
+                      <button
+                        className="close-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsDeleteOpen(true);
+                        }}
+                      >
+                        x
+                      </button>
                     </div>
                   </div>
 
