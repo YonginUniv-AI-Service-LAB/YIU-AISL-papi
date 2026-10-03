@@ -2,16 +2,35 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/onboarding.css'
 
+type DomainOption = {
+  label: string
+  code: string
+}
+
+const domainOptions: DomainOption[] = [
+  { label: 'LLM & RAG', code: 'llm_rag' },
+  { label: 'NLP', code: 'nlp' },
+  { label: '컴퓨터 비전(CV)', code: 'cv' },
+  { label: '추천 시스템(RecSys)', code: 'recsys' },
+  { label: '멀티모달', code: 'multimodal' },
+  { label: 'Reinforcement Learning', code: 'rl' },
+  { label: '기타', code: 'other' },
+]
+
 function OnboardingPage() {
   const navigate = useNavigate()
 
-  const [domains, setDomains] = useState(['LLM & RAG', 'NLP'])
+  const [domains, setDomains] = useState<string[]>([
+    'llm_rag',
+    'nlp',
+  ])
   const [customDomain, setCustomDomain] = useState('')
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleDomainChange = (domain: string) => {
-    if (domains.includes(domain)) {
-      setDomains(domains.filter((item) => item !== domain))
+  const handleDomainChange = (domainCode: string) => {
+    if (domains.includes(domainCode)) {
+      setDomains(domains.filter((item) => item !== domainCode))
       setError('')
       return
     }
@@ -21,23 +40,104 @@ function OnboardingPage() {
       return
     }
 
-    setDomains([...domains, domain])
+    setDomains([...domains, domainCode])
     setError('')
   }
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (domains.length === 0) {
       setError('관심 분야를 최소 1개 선택해주세요.')
       return
     }
 
-    if (domains.includes('기타') && !customDomain.trim()) {
+    if (domains.includes('other') && !customDomain.trim()) {
       setError('기타 관심 분야를 입력해주세요.')
       return
     }
 
-    setError('')
-    navigate('/library')
+    try {
+      setIsSubmitting(true)
+      setError('')
+
+      const requestDomains = domains.map((domainCode, index) => ({
+        domainCode,
+        customLabel:
+          domainCode === 'other' ? customDomain.trim() : null,
+        rank: index + 1,
+      }))
+
+      const response = await fetch(
+        'http://localhost:8080/api/me/onboarding',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+          body: JSON.stringify({
+            action: 'complete',
+            domains: requestDomains,
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        const result = await response.json()
+
+        setError(
+          result?.error?.message ??
+            '온보딩 저장에 실패했습니다.'
+        )
+        return
+      }
+
+      navigate('/library')
+    } catch {
+      setError(
+        '서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.'
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleSkip = async () => {
+    try {
+      setIsSubmitting(true)
+      setError('')
+
+      const response = await fetch(
+        'http://localhost:8080/api/me/onboarding',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+          body: JSON.stringify({
+            action: 'skip',
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        const result = await response.json()
+
+        setError(
+          result?.error?.message ??
+            '온보딩을 건너뛰지 못했습니다.'
+        )
+        return
+      }
+
+      navigate('/library')
+    } catch {
+      setError(
+        '서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.'
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -45,54 +145,70 @@ function OnboardingPage() {
       <h1 className="onboarding-title">사용자 성향 설정</h1>
 
       <section className="onboarding-section">
-        <h2>주로 분석하고자 하는 AI 및 기술 도메인을 선택해 주세요. (다중 선택, 최대 3개)</h2>
+        <h2>
+          주로 분석하고자 하는 AI 및 기술 도메인을 선택해 주세요.
+          (다중 선택, 최대 3개)
+        </h2>
 
         <div className="onboarding-options">
-          <label className="onboarding-option">
-            <input type="checkbox" checked={domains.includes('LLM & RAG')} onChange={() => handleDomainChange('LLM & RAG')} />
-            <span>LLM & RAG</span>
-          </label>
-
-          <label className="onboarding-option">
-            <input type="checkbox" checked={domains.includes('NLP')} onChange={() => handleDomainChange('NLP')} />
-            <span>NLP</span>
-          </label>
-
-          <label className="onboarding-option">
-            <input type="checkbox" checked={domains.includes('컴퓨터 비전(CV)')} onChange={() => handleDomainChange('컴퓨터 비전(CV)')} />
-            <span>컴퓨터 비전(CV)</span>
-          </label>
-
-          <label className="onboarding-option">
-            <input type="checkbox" checked={domains.includes('추천 시스템(RecSys)')} onChange={() => handleDomainChange('추천 시스템(RecSys)')} />
-            <span>추천 시스템(RecSys)</span>
-          </label>
-
-          <label className="onboarding-option">
-            <input type="checkbox" checked={domains.includes('멀티모달')} onChange={() => handleDomainChange('멀티모달')} />
-            <span>멀티모달</span>
-          </label>
-
-          <label className="onboarding-option">
-            <input type="checkbox" checked={domains.includes('Reinforcement Learning')} onChange={() => handleDomainChange('Reinforcement Learning')} />
-            <span>Reinforcement Learning</span>
-          </label>
-
-          <label className="onboarding-option">
-            <input type="checkbox" checked={domains.includes('기타')} onChange={() => handleDomainChange('기타')} />
-            <span>기타: 본인이 직접 쓰기</span>
-          </label>
+          {domainOptions.map((option) => (
+            <label
+              key={option.code}
+              className="onboarding-option"
+            >
+              <input
+                type="checkbox"
+                checked={domains.includes(option.code)}
+                onChange={() => handleDomainChange(option.code)}
+                disabled={isSubmitting}
+              />
+              <span>
+                {option.label === '기타'
+                  ? '기타: 본인이 직접 쓰기'
+                  : option.label}
+              </span>
+            </label>
+          ))}
         </div>
 
-        {domains.includes('기타') && (
-          <input className="onboarding-custom-input" type="text" placeholder="관심 분야를 입력해주세요" value={customDomain} onChange={(e) => { setCustomDomain(e.target.value); setError('') }} />
+        {domains.includes('other') && (
+          <input
+            className="onboarding-custom-input"
+            type="text"
+            placeholder="관심 분야를 입력해주세요"
+            value={customDomain}
+            onChange={(e) => {
+              setCustomDomain(e.target.value)
+              setError('')
+            }}
+            disabled={isSubmitting}
+          />
         )}
 
-        {error && <p className="onboarding-error">{error}</p>}
+        {error && (
+          <p className="onboarding-error">
+            {error}
+          </p>
+        )}
 
         <div className="onboarding-actions">
-          <button className="onboarding-skip-button" type="button" onClick={() => navigate('/library')}>건너뛰기</button>
-          <button className="onboarding-complete-button" type="button" onClick={handleComplete}>완료</button>
+          <button
+            className="onboarding-skip-button"
+            type="button"
+            onClick={handleSkip}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? '처리 중...' : '건너뛰기'}
+          </button>
+
+          <button
+            className="onboarding-complete-button"
+            type="button"
+            onClick={handleComplete}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? '저장 중...' : '완료'}
+          </button>
         </div>
       </section>
     </main>

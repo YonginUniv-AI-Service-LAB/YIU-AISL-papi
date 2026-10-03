@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import '../../styles/login.css'
 import papiLogo from '../../assets/papi-logo.svg'
 
@@ -7,59 +7,69 @@ function LoginPage() {
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
-  const [errorField, setErrorField] = useState<'loginId' | 'password' | ''>('')
+
   const navigate = useNavigate()
+  const location = useLocation()
 
-  const isValidEmail = (value: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-  }
+  const loginState = location.state as {
+    fromSignup?: boolean
+  } | null
 
-  const isValidUserId = (value: string) => {
-    return /^[A-Za-z0-9]{4,10}$/.test(value)
-  }
-
-  const isValidPassword = (value: string) => {
-    return /^(?=.*[a-z])(?=.*[A-Z]).{8}$/.test(value)
-  }
-
-  const handleLogin = () => {
-    const trimmedLoginId = loginId.trim()
-
-    if (!trimmedLoginId) {
-      setErrorMessage('이메일 또는 아이디를 입력해주세요.')
-      setErrorField('loginId')
-      return
-    }
-
-    if (trimmedLoginId.includes('@')) {
-      if (!isValidEmail(trimmedLoginId)) {
-        setErrorMessage('올바른 이메일 형식을 입력해주세요.')
-        setErrorField('loginId')
-        return
-      }
-    } else {
-      if (!isValidUserId(trimmedLoginId)) {
-        setErrorMessage('아이디는 영문과 숫자로 4자 이상 10자 이하로 입력해주세요.')
-        setErrorField('loginId')
-        return
-      }
-    }
-
-    if (!password.trim()) {
-      setErrorMessage('비밀번호를 입력해주세요.')
-      setErrorField('password')
-      return
-    }
-
-    if (!isValidPassword(password)) {
-      setErrorMessage('비밀번호는 8자이며 영문 대문자와 소문자를 각각 1개 이상 포함해야 합니다.')
-      setErrorField('password')
-      return
-    }
-
+  const handleLogin = async () => {
     setErrorMessage('')
-    setErrorField('')
-    navigate('/library')
+
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          login: loginId,
+          password,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        const errorCode = result?.error?.code
+
+        if (errorCode === 'INVALID_CREDENTIALS') {
+          setErrorMessage('아이디 또는 비밀번호가 올바르지 않습니다.')
+        } else if (errorCode === 'EMAIL_NOT_VERIFIED') {
+          setErrorMessage('이메일 인증이 필요합니다.')
+        } else if (errorCode === 'ACCOUNT_SUSPENDED') {
+          setErrorMessage('정지된 계정입니다.')
+        } else if (errorCode === 'LOGIN_ATTEMPT_EXCEEDED') {
+          setErrorMessage(
+            '로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요.'
+          )
+        } else {
+          setErrorMessage(
+            result?.error?.message || '로그인에 실패했습니다.'
+          )
+        }
+
+        return
+      }
+
+      const { accessToken, refreshToken } = result.data
+
+      localStorage.setItem('accessToken', accessToken)
+      localStorage.setItem('refreshToken', refreshToken)
+
+      if (loginState?.fromSignup) {
+        navigate('/onboarding', { replace: true })
+      } else {
+        navigate('/library')
+      }
+    } catch (error) {
+      console.error('로그인 요청 실패:', error)
+      setErrorMessage(
+        '서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.'
+      )
+    }
   }
 
   return (
@@ -70,9 +80,31 @@ function LoginPage() {
         <h1 className="login-title">로그인</h1>
 
         <div className="login-input-group">
-          <input className={`login-input ${errorField === 'loginId' ? 'login-input-error' : ''}`} type="text" placeholder="이메일 또는 아이디 입력" value={loginId} onChange={(e) => { setLoginId(e.target.value); if (errorField === 'loginId') { setErrorMessage(''); setErrorField('') } }} />
+          <input
+            className={`login-input ${
+              errorMessage ? 'login-input-error' : ''
+            }`}
+            type="text"
+            placeholder="아이디 입력"
+            value={loginId}
+            onChange={(e) => {
+              setLoginId(e.target.value)
+              setErrorMessage('')
+            }}
+          />
 
-          <input className={`login-input ${errorField === 'password' ? 'login-input-error' : ''}`} type="password" placeholder="비밀번호 입력" value={password} onChange={(e) => { setPassword(e.target.value); if (errorField === 'password') { setErrorMessage(''); setErrorField('') } }} />
+          <input
+            className={`login-input ${
+              errorMessage ? 'login-input-error' : ''
+            }`}
+            type="password"
+            placeholder="비밀번호 입력"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              setErrorMessage('')
+            }}
+          />
 
           {errorMessage && (
             <div className="login-error-message">
@@ -82,15 +114,29 @@ function LoginPage() {
           )}
         </div>
 
-        <button className="forgot-password" type="button" onClick={() => navigate('/password-reset')}>비밀번호를 잊으셨나요?</button>
+        <button
+          className="forgot-password"
+          type="button"
+          onClick={() => navigate('/password-reset')}
+        >
+          비밀번호를 잊으셨나요?
+        </button>
 
         <div className="login-button-group">
-          <button className="login-button" type="button" onClick={handleLogin}>로그인</button>
+          <button
+            className="login-button"
+            type="button"
+            onClick={handleLogin}
+          >
+            로그인
+          </button>
         </div>
 
         <div className="signup-guide">
           <span>계정이 없으신가요?</span>
-          <button type="button" onClick={() => navigate('/signup')}>회원가입</button>
+          <button type="button" onClick={() => navigate('/signup')}>
+            회원가입
+          </button>
         </div>
       </section>
     </main>

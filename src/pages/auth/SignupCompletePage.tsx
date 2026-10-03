@@ -1,18 +1,9 @@
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import '../../styles/signupComplete.css'
 import papiLogo from '../../assets/papi-logo.svg'
 
 function SignupCompletePage() {
   const navigate = useNavigate()
-  const location = useLocation()
-
-  const signupState = location.state as {
-    signupCompleted?: boolean
-  } | null
-
-  if (!signupState?.signupCompleted) {
-    return <Navigate to="/signup" replace />
-  }
 
   return (
     <main className="signup-complete-page">
@@ -26,7 +17,19 @@ function SignupCompletePage() {
 
         <div className="signup-complete-icon">✓</div>
 
-        <button className="signup-complete-button" type="button" onClick={() => navigate('/onboarding')}>다음</button>
+        <button
+          className="signup-complete-button"
+          type="button"
+          onClick={() =>
+            navigate('/login', {
+              state: {
+                fromSignup: true,
+              },
+            })
+          }
+        >
+          다음
+        </button>
       </section>
     </main>
   )
