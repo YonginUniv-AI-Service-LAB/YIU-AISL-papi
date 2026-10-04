@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState , useRef } from "react";
 import type { KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LibraryPage.css";
@@ -26,6 +26,7 @@ function LibraryPage() {
   const [isYearOpen, setIsYearOpen] = useState(false);
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
   const [yearSearch, setYearSearch] = useState("");
+  const ignoreNextClickRef = useRef (false) ;
 
   const startEditTitle = (id: number, title: string) => {
     setEditingId(id);
@@ -149,7 +150,16 @@ function LibraryPage() {
                 <div 
                   key={paper.id} 
                   className={`paper-card ${selectedIds.includes(paper.id) ? "selected" : ""}`}
-                  onClick={() => navigate(`/reader/${paper.id}`)}
+                  onMouseDown={() => {
+                   ignoreNextClickRef.current = editingId !== null;
+                  }}
+                  onClick={() => {
+                    if (ignoreNextClickRef.current) {
+                       ignoreNextClickRef.current = false;
+                       return;
+                    }
+                    navigate(`/reader/${paper.id}`);
+                  }}
                   >
                   <div className="card-header">
                     {editingId === paper.id ? (
