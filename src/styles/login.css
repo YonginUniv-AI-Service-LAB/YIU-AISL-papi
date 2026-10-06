@@ -72,26 +72,16 @@
   gap: 8px;
 }
 
-.login-button,
-.guest-button {
+.login-button {
   width: 400px;
   height: 40px;
   border-radius: 8px;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 700;
-}
-
-.login-button {
   border: none;
   background: #000000;
   color: #ffffff;
-}
-
-.guest-button {
-  background: #ffffff;
-  color: #000000;
-  border: 1px solid #000000;
 }
 
 .signup-guide {
