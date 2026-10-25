@@ -133,3 +133,9 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.paper-select-message {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #6b7280;
+}
