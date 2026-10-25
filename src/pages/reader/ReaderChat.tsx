@@ -5,8 +5,9 @@ import { ArrowUpIcon } from './ReaderIcons'
 import ReaderPaperSelectModal from './ReaderPaperSelectModal'
 import ReaderSummary from './ReaderSummary'
 import ReaderCompare from './ReaderCompare'
-import { ApiError, getChunk, getComparison, getComparisonCitations, getMessages, getSuggestedQuestions, getSummary, requestComparison, requestSummary, sendQuestion, waitUntilDone } from './readerApi'
-import type { Citation, Comparison, Summary } from './readerApi'
+import ReaderChecklist from './ReaderChecklist'
+import { ApiError, getChunk, getComparison, getChecklist, getComparisonCitations, getMessages, getSuggestedQuestions, getSummary, requestChecklist, requestComparison, requestSummary, sendQuestion, waitUntilDone } from './readerApi'
+import type { Checklist, ChecklistResult, Citation, Comparison, Summary } from './readerApi'
 import type { EvidenceTarget, ReaderPaper } from './ReaderPage'
 
 type ReaderChatProps = {
@@ -18,6 +19,7 @@ type ReaderChatProps = {
   onCloseCompare: () => void
   onShowEvidence: (paperId: string, chunkId: number | null, pageNo: number | null) => void
   onShowComparisonEvidence: (target: EvidenceTarget) => void
+  onShowPaperEvidence: (target: EvidenceTarget) => void
   onRoomTitleChange: () => void
 }
 
@@ -33,9 +35,10 @@ const toolButtons = ['추천 질문', '비교', '요약', '재현 가능성']
 // 백엔드에 질문 API(45번)가 아직 없을 때 보여줄 안내 문구입니다.
 const NO_QUESTION_API_MESSAGE = '아직 질문 기능이 서버와 연결되지 않았어요. 질문 API가 추가되면 실제 답변이 표시됩니다.'
 
-function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompare, onCloseCompare, onShowEvidence, onShowComparisonEvidence, onRoomTitleChange }: ReaderChatProps) {
+function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompare, onCloseCompare, onShowEvidence, onShowComparisonEvidence, onShowPaperEvidence, onRoomTitleChange }: ReaderChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([])
+  const [isSuggestionOpen, setIsSuggestionOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [activeEvidence, setActiveEvidence] = useState<string | null>(null)
   const [isAnswering, setIsAnswering] = useState(false)
@@ -50,9 +53,15 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
   const [comparison, setComparison] = useState<Comparison | null>(null)
   const [compareMessage, setCompareMessage] = useState('')
 
+  const [isChecklistSelectOpen, setIsChecklistSelectOpen] = useState(false)
+  const [checklistPaper, setChecklistPaper] = useState<ReaderPaper | null>(null)
+  const [checklist, setChecklist] = useState<Checklist | null>(null)
+  const [checklistMessage, setChecklistMessage] = useState('')
+
   // 요약·비교 결과를 기다리는 중에 창을 닫거나 다시 요청하면 이전 결과는 무시합니다.
   const summaryRequestId = useRef(0)
   const compareRequestId = useRef(0)
+  const checklistRequestId = useRef(0)
 
   // 이전 대화 내용과 추천 질문 불러오기
   useEffect(() => {
@@ -86,15 +95,22 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
       answerController.current?.abort()
       summaryRequestId.current += 1
       compareRequestId.current += 1
+      checklistRequestId.current += 1
     }
   }, [roomId])
 
   const handleToolClick = (tool: string) => {
+    if (tool === '추천 질문') {
+      setIsSuggestionOpen(!isSuggestionOpen)
+    }
     if (tool === '요약') {
       setIsSummarySelectOpen(true)
     }
     if (tool === '비교') {
       setIsCompareSelectOpen(true)
+    }
+    if (tool === '재현 가능성') {
+      setIsChecklistSelectOpen(true)
     }
   }
 
@@ -163,6 +179,7 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     setSummary(null)
     setSummaryMessage('요약을 만드는 중이에요. 잠시만 기다려주세요...')
     onCloseCompare()
+    closeChecklist()
 
     try {
       await requestSummary(paper.userPaperId, roomId)
@@ -188,6 +205,7 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
 
     setIsCompareSelectOpen(false)
     closeSummary()
+    closeChecklist()
     setComparison(null)
     setCompareMessage('두 논문을 비교하는 중이에요. 잠시만 기다려주세요...')
     onCompare(papers)
@@ -209,6 +227,46 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
   const closeComparison = () => {
     compareRequestId.current += 1
     onCloseCompare()
+  }
+
+  const startChecklist = async (paper: ReaderPaper) => {
+    const requestId = ++checklistRequestId.current
+
+    setIsChecklistSelectOpen(false)
+    closeSummary()
+    onCloseCompare()
+    setChecklistPaper(paper)
+    setChecklist(null)
+    setChecklistMessage('재현 가능성을 확인하는 중이에요. 잠시만 기다려주세요...')
+
+    try {
+      await requestChecklist(paper.userPaperId, roomId)
+      const result = await waitUntilDone(() => getChecklist(paper.userPaperId), () => requestId !== checklistRequestId.current)
+      if (requestId !== checklistRequestId.current) return
+
+      setChecklist(result)
+      if (result.status === 'failed') setChecklistMessage('재현 가능성을 확인하지 못했습니다. 잠시 후 다시 시도해주세요.')
+    } catch (error) {
+      if (requestId === checklistRequestId.current) {
+        setChecklistMessage(error instanceof Error ? error.message : '재현 가능성 결과를 불러오지 못했습니다.')
+      }
+    }
+  }
+
+  function closeChecklist() {
+    checklistRequestId.current += 1
+    setChecklistPaper(null)
+  }
+
+  const showChecklistEvidence = async (result: ChecklistResult) => {
+    if (!checklistPaper || result.pageNo === null) return
+
+    let bbox = null
+    if (result.chunkId !== null) {
+      bbox = (await getChunk(checklistPaper.userPaperId, result.chunkId).catch(() => null))?.bbox ?? null
+    }
+
+    onShowPaperEvidence({ userPaperId: checklistPaper.userPaperId, pageNo: result.pageNo, bbox })
   }
 
   const showComparisonEvidence = async (field: string, position: number) => {
@@ -242,7 +300,7 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
       <div className="reader-chat-tools">
         {isViewerOpen ? (
           toolButtons.map((tool) => (
-            <button key={tool} className={`reader-chat-tool-button ${(tool === '요약' && isSummaryOpen) || (tool === '비교' && comparePapers.length > 0) ? 'reader-chat-tool-button-active' : ''}`} type="button" onClick={() => handleToolClick(tool)}>{tool}</button>
+            <button key={tool} className={`reader-chat-tool-button ${(tool === '요약' && isSummaryOpen) || (tool === '비교' && comparePapers.length > 0) || (tool === '추천 질문' && isSuggestionOpen) || (tool === '재현 가능성' && checklistPaper !== null) ? 'reader-chat-tool-button-active' : ''}`} type="button" onClick={() => handleToolClick(tool)}>{tool}</button>
           ))
         ) : (
           <button className="reader-chat-tool-button" type="button" onClick={onOpenViewer}>PDF 뷰어 열기</button>
@@ -272,12 +330,12 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
         )}
       </div>
 
-      {messages.length === 0 && suggestedQuestions.length > 0 && (
+      {(messages.length === 0 || isSuggestionOpen) && suggestedQuestions.length > 0 && (
         <div className="reader-chat-suggestions">
           <p className="reader-chat-suggestions-title">추천 질문</p>
           <div className="reader-chat-suggestions-list">
             {suggestedQuestions.map((question) => (
-              <button key={question} className="reader-chat-suggestion" type="button" onClick={() => askQuestion(question, true)}>
+              <button key={question} className="reader-chat-suggestion" type="button" onClick={() => { setIsSuggestionOpen(false); askQuestion(question, true) }}>
                 {question}
               </button>
             ))}
@@ -298,6 +356,22 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
       )}
 
       {isSummaryOpen && <ReaderSummary summary={summary} message={summaryMessage} onClose={closeSummary} />}
+
+      {isChecklistSelectOpen && (
+        <ReaderPaperSelectModal
+          title="재현 가능성을 확인할 논문을 선택하세요."
+          confirmLabel="선택"
+          showCancel
+          maxSelect={1}
+          overlay="panel"
+          onClose={() => setIsChecklistSelectOpen(false)}
+          onConfirm={(papers) => startChecklist(papers[0])}
+        />
+      )}
+
+      {checklistPaper && (
+        <ReaderChecklist checklist={checklist} message={checklistMessage} onShowEvidence={showChecklistEvidence} onClose={closeChecklist} />
+      )}
 
       {isCompareSelectOpen && (
         <ReaderPaperSelectModal

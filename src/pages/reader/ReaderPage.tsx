@@ -173,6 +173,7 @@ function ReaderPage() {
             onCloseCompare={() => setComparePapers([])}
             onShowEvidence={showEvidence}
             onShowComparisonEvidence={(target) => setEvidence(target)}
+            onShowPaperEvidence={(target) => { setEvidence(target); setViewerPaperId(target.userPaperId); setIsViewerOpen(true) }}
             onRoomTitleChange={() => setRoomsVersion((version) => version + 1)}
           />
 

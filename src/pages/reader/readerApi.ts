@@ -177,6 +177,29 @@ export type Comparison = {
   narrative: { comparisonSummary: string } | null
 }
 
+export type ChecklistResultStatus = '충족' | '미충족' | '불명확' | '해당없음'
+
+export type ChecklistResult = {
+  itemCode: string
+  category: string
+  name: string
+  displayOrder: number
+  status: ChecklistResultStatus
+  // 근거는 "충족"인 항목에만 있습니다.
+  evidenceQuote: string | null
+  pageNo: number | null
+  chunkId: number | null
+}
+
+export type Checklist = {
+  status: InsightStatus
+  // 충족·미충족·불명확·해당없음 개수 (완료 전에는 null)
+  summaryCounts: Record<ChecklistResultStatus, number> | null
+  results: ChecklistResult[]
+  disclaimer: string
+  errorCode: string | null
+}
+
 export type ComparisonCitation = {
   field: string
   position: number
@@ -394,11 +417,30 @@ export const getComparisonCitations = async (comparisonId: string, field: string
   return result.data
 }
 
+// ===== 재현 가능성 체크리스트 =====
+
+export const requestChecklist = async (userPaperId: string, chatRoomId: string) => {
+  try {
+    await request<void>(`/api/papers/${userPaperId}/checklist`, {
+      method: 'POST',
+      body: JSON.stringify({ chatRoomId }),
+    })
+  } catch (error) {
+    // 이미 만드는 중이면(409 CHECKLIST_IN_PROGRESS) 그대로 결과를 기다리면 됩니다.
+    if (!(error instanceof ApiError && error.code === 'CHECKLIST_IN_PROGRESS')) throw error
+  }
+}
+
+export const getChecklist = async (userPaperId: string) => {
+  const result = await request<DataResponse<Checklist>>(`/api/papers/${userPaperId}/checklist`)
+  return result.data
+}
+
 // ===== 로그아웃 =====
 
 export const logout = () => request<void>('/api/auth/logout', { method: 'POST' })
 
-// 요약·비교처럼 바로 완성되지 않는 결과를 completed/failed가 될 때까지 다시 불러옵니다.
+// 요약·비교·체크리스트처럼 바로 완성되지 않는 결과를 completed/failed가 될 때까지 다시 불러옵니다.
 export const waitUntilDone = async <T extends { status: InsightStatus }>(
   load: () => Promise<T>,
   isCancelled: () => boolean
