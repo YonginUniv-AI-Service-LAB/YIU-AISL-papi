@@ -9,6 +9,9 @@ import {
   deletePaper,
   registerPaperByUrl,
   registerPaperByFile,
+  updateReadStatus,
+  getProcessingStatuses,
+  retryProcessing,
   type LibraryPaper,
   type YearCount,
 } from "./libraryApi";
@@ -18,6 +21,9 @@ const statusLabel: Record<string, string> = {
   ready: "준비 완료",
   failed: "처리 실패",
 };
+
+// 아직 처리가 끝나지 않은 상태인지 (queued / parsing / embedding)
+const isProcessing = (status: string) => status !== "ready" && status !== "failed";
 
 // 사용자가 바꾼 제목이 있으면 그걸, 없으면 원제를 보여줍니다.
 const getTitle = (paper: LibraryPaper) => paper.displayTitle ?? paper.title;
@@ -97,6 +103,68 @@ function LibraryPage() {
       ignore = true;
     };
   }, [query, readStatuses, appliedYears, sort, reloadKey]);
+
+  // 처리 중인 카드가 있으면 5초마다 상태를 확인해서, 새로고침 없이 "준비 완료"로 바꿔요.
+  const processingIds = paperList
+    .filter((paper) => isProcessing(paper.processingStatus))
+    .map((paper) => paper.userPaperId)
+    .join(",");
+  const [progressById, setProgressById] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!processingIds) return; // 처리 중인 카드가 없으면 확인하지 않아요
+
+    const timer = setInterval(async () => {
+      try {
+        const items = await getProcessingStatuses(processingIds.split(","));
+        setProgressById((prev) => {
+          const next = { ...prev };
+          items.forEach((item) => (next[item.userPaperId] = item.progress));
+          return next;
+        });
+        setPaperList((prev) =>
+          prev.map((paper) => {
+            const item = items.find((i) => i.userPaperId === paper.userPaperId);
+            return item ? { ...paper, processingStatus: item.processingStatus } : paper;
+          })
+        );
+        // 하나라도 "준비 완료"가 되면 페이지 수 같은 정보도 새로 받도록 목록을 다시 불러와요
+        if (items.some((item) => item.processingStatus === "ready")) {
+          setReloadKey((key) => key + 1);
+        }
+      } catch {
+        // 잠깐 실패해도 다음 5초에 다시 확인해요
+      }
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [processingIds]);
+
+  // 처리 실패한 논문 다시 시도
+  const handleRetry = async (userPaperId: string) => {
+    try {
+      await retryProcessing(userPaperId);
+      setPaperList((prev) =>
+        prev.map((paper) =>
+          paper.userPaperId === userPaperId ? { ...paper, processingStatus: "queued" } : paper
+        )
+      );
+    } catch (error) {
+      alert((error as Error).message);
+    }
+  };
+
+  // 카드의 읽기 상태 바꾸기
+  const handleReadStatusChange = async (userPaperId: string, readStatus: string) => {
+    try {
+      await updateReadStatus(userPaperId, readStatus);
+      setPaperList((prev) =>
+        prev.map((paper) => (paper.userPaperId === userPaperId ? { ...paper, readStatus } : paper))
+      );
+    } catch (error) {
+      alert((error as Error).message);
+    }
+  };
 
   // 연도 필터에 보여줄 연도 목록을 불러옵니다.
   useEffect(() => {
@@ -365,7 +433,7 @@ function LibraryPage() {
                         </button>
                       </div>
                     ) : (
-                    <label className="checkbox-laber" onClick={(e) => e.stopPropagation()}>
+                    <label className="card-title-label" onClick={(e) => e.stopPropagation()}>
                       <input 
                         type="checkbox"
                         checked={selectedIds.includes(paper.userPaperId)}
@@ -395,7 +463,21 @@ function LibraryPage() {
                     <div className="card-header-right">
                       <span className="status-badge">
                         <span className="status-dot" /> {statusLabel[paper.processingStatus] ?? "처리 중"}
+                        {isProcessing(paper.processingStatus) && progressById[paper.userPaperId] !== undefined &&
+                          ` ${progressById[paper.userPaperId]}%`}
                       </span>
+                      {paper.processingStatus === "failed" && (
+                        <button
+                          type="button"
+                          className="retry-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRetry(paper.userPaperId);
+                          }}
+                        >
+                          다시 시도
+                        </button>
+                      )}
                       <button
                         className="close-button"
                         onClick={(e) => {
@@ -412,26 +494,43 @@ function LibraryPage() {
                   <div className="thumbnail" />
                   
                   <div className="card-info">
-                    <div className="info-row">
-                      <span className="info-laber">저자</span>
-                      <span>{paper.authors.join(", ")}</span>
-                    </div>
+                    {paper.authors.length > 0 && (
+                      <div className="info-row">
+                        <span className="info-label">저자</span>
+                        <span>{paper.authors.join(", ")}</span>
+                      </div>
+                    )}
                     {/* TODO: 소속 기관은 GET /api/papers 응답에 없어서 잠시 숨김 (백엔드 확인 필요)
                     <div className="info-row">
-                      <span className="info-laber">소속 기관</span>
+                      <span className="info-label">소속 기관</span>
                       <span>{paper.org}</span>
                     </div>
                     */}
                     {paper.publishedYear && (
                       <div className="info-row">
-                        <span className="info-laber">발행연도</span>
+                        <span className="info-label">발행연도</span>
                         <span>{paper.publishedYear}</span>
                       </div>
                     )}
+                    <div className="info-row">
+                      <span className="info-label">읽기 상태</span>
+                      <select
+                        className="read-status-select"
+                        value={paper.readStatus}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => handleReadStatusChange(paper.userPaperId, e.target.value)}
+                      >
+                        {readStatusOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     {/* TODO: 학회 / 저널은 GET /api/papers 응답에 없어서 잠시 숨김 (백엔드 확인 필요)
                     {paper.journal && (
                       <div className="info-row">
-                        <span className="info-laber">학회 / 저널</span>
+                        <span className="info-label">학회 / 저널</span>
                         <span>{paper.journal}</span>
                       </div>
                     )}
@@ -441,7 +540,7 @@ function LibraryPage() {
 
                   {getProgress(paper) > 0 && (
                     <>
-                      <a href="#" className="summary-link">요약 보기 &gt;;</a>
+                      <a href="#" className="summary-link">요약 보기 &gt;</a>
                       <div className="progress-row">
                         <span>읽는 중</span>
                         <div className="progress-bar">

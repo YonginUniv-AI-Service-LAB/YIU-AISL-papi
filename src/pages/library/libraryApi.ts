@@ -137,3 +137,39 @@ export async function registerPaperByFile(file: File): Promise<PaperRegisterResu
   })
   return result.data
 }
+
+// ===== 읽기 상태 / 처리 상태 =====
+
+// 처리 상태 일괄 조회 결과 1개 (GET /api/papers/processing)
+export type ProcessingItem = {
+  userPaperId: string
+  processingStatus: string // queued | parsing | embedding | ready | failed
+  progress: number // 0~100
+  currentStep: string | null
+  errorCode: string | null
+  canRetry: boolean
+}
+
+// 읽기 상태 바꾸기 (PATCH /api/papers/{userPaperId}/read-status)
+export async function updateReadStatus(userPaperId: string, readStatus: string): Promise<void> {
+  await request(`/api/papers/${userPaperId}/read-status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ readStatus }),
+  })
+}
+
+// 처리 중인 논문들의 상태를 한 번에 조회 (GET /api/papers/processing?userPaperIds=...)
+export async function getProcessingStatuses(userPaperIds: string[]): Promise<ProcessingItem[]> {
+  const params = new URLSearchParams()
+  userPaperIds.forEach((id) => params.append('userPaperIds', id))
+  const result = await request<{ data: { items: ProcessingItem[]; allSettled: boolean } }>(
+    `/api/papers/processing?${params.toString()}`
+  )
+  return result.data.items
+}
+
+// 처리 실패한 논문 다시 시도 (POST /api/papers/{userPaperId}/processing/retry)
+export async function retryProcessing(userPaperId: string): Promise<void> {
+  await request(`/api/papers/${userPaperId}/processing/retry`, { method: 'POST' })
+}
