@@ -1,8 +1,17 @@
 import { useState, useRef, useEffect } from "react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, ChangeEvent, DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LibraryPage.css";
-import { getPapers, type LibraryPaper } from "./libraryApi";
+import {
+  getPapers,
+  getYearFilters,
+  updatePaperTitle,
+  deletePaper,
+  registerPaperByUrl,
+  registerPaperByFile,
+  type LibraryPaper,
+  type YearCount,
+} from "./libraryApi";
 
 // 화면에 보여줄 처리 상태 이름 (백엔드 processingStatus → 한글)
 const statusLabel: Record<string, string> = {
@@ -19,7 +28,20 @@ const getProgress = (paper: LibraryPaper) =>
     ? Math.round((paper.readingProgressPage / paper.pageCount) * 100)
     : 0;
 
-const years = ["2026", "2025", "2024", "2023", "2022", "2021"];
+// 읽기 상태 체크박스 (화면 이름 → 백엔드 값)
+const readStatusOptions = [
+  { label: "읽음", value: "read" },
+  { label: "안읽음", value: "unread" },
+  { label: "읽는중", value: "reading" },
+];
+
+// 정렬 선택지 (화면 이름 → 백엔드 sort 값)
+const sortOptions = [
+  { label: "최신순", value: "recent" },
+  { label: "오래된순", value: "oldest" },
+  { label: "제목순", value: "title" },
+  { label: "최근 열람순", value: "lastOpened" },
+];
 
 const recentItems = ["논문 관련 질문", "논문 내용 요약", "우선 순위 추천"];
 function LibraryPage() {
@@ -37,13 +59,122 @@ function LibraryPage() {
   const [yearSearch, setYearSearch] = useState("");
   const ignoreNextClickRef = useRef (false) ;
 
-  // 페이지가 처음 열릴 때 백엔드에서 내 논문 목록을 불러옵니다.
+  // 검색 / 필터 / 정렬 조건 (바뀌면 목록을 다시 불러와요)
+  const [searchText, setSearchText] = useState(""); // 입력창에 치는 중인 글자
+  const [query, setQuery] = useState(""); // 엔터를 눌러 실제로 검색할 글자
+  const [readStatuses, setReadStatuses] = useState<string[]>([]);
+  const [appliedYears, setAppliedYears] = useState<number[]>([]); // 연도 팝업에서 "확인"을 누른 값
+  const [sort, setSort] = useState("recent");
+  const [reloadKey, setReloadKey] = useState(0); // 업로드 후 목록을 새로 불러올 때 1씩 올려요
+  const [yearOptions, setYearOptions] = useState<YearCount[]>([]);
+  const years = yearOptions.map((item) => String(item.year));
+
+  // 삭제할 논문 / 업로드할 파일·URL
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadUrl, setUploadUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 페이지가 열릴 때, 그리고 검색/필터/정렬 조건이 바뀔 때마다 목록을 불러옵니다.
   useEffect(() => {
-    getPapers()
-      .then((papers) => setPaperList(papers))
-      .catch((error: Error) => setLoadError(error.message))
-      .finally(() => setIsLoading(false));
-  }, []);
+    let ignore = false; // 조건이 빨리 바뀌면 이전 요청 결과는 무시해요
+
+    getPapers({ q: query, readStatus: readStatuses, year: appliedYears, sort })
+      .then((papers) => {
+        if (ignore) return;
+        setPaperList(papers);
+        setLoadError("");
+      })
+      .catch((error: Error) => {
+        if (!ignore) setLoadError(error.message);
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [query, readStatuses, appliedYears, sort, reloadKey]);
+
+  // 연도 필터에 보여줄 연도 목록을 불러옵니다.
+  useEffect(() => {
+    getYearFilters()
+      .then((items) => setYearOptions(items))
+      .catch(() => setYearOptions([]));
+  }, [reloadKey]);
+
+  // 읽기 상태 체크박스를 누르면 목록 조건에 넣거나 뺍니다.
+  const toggleReadStatus = (value: string) => {
+    setReadStatuses((prev) =>
+      prev.includes(value) ? prev.filter((status) => status !== value) : [...prev, value]
+    );
+  };
+
+  // 검색창에서 엔터를 누르면 검색합니다.
+  const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing) return;
+    if (e.key === "Enter") setQuery(searchText.trim());
+  };
+
+  // 연도 팝업의 "확인": 고른 연도로 목록을 다시 불러옵니다.
+  const applyYears = () => {
+    setAppliedYears(selectedYears.map(Number));
+    setIsYearOpen(false);
+  };
+
+  // 삭제 모달의 "삭제"
+  const handleDelete = async () => {
+    if (!deleteTargetId) return;
+    try {
+      await deletePaper(deleteTargetId);
+      setPaperList((prev) => prev.filter((paper) => paper.userPaperId !== deleteTargetId));
+      setSelectedIds((prev) => prev.filter((id) => id !== deleteTargetId));
+    } catch (error) {
+      alert((error as Error).message);
+    }
+    setDeleteTargetId(null);
+    setIsDeleteOpen(false);
+  };
+
+  // 업로드 모달 닫기 (입력값도 비워요)
+  const closeUpload = () => {
+    setIsUploadOpen(false);
+    setUploadFile(null);
+    setUploadUrl("");
+  };
+
+  // 파일 선택 / 끌어다 놓기
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setUploadFile(e.target.files?.[0] ?? null);
+  };
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setUploadFile(e.dataTransfer.files[0] ?? null);
+  };
+
+  // 업로드 모달의 "저장": 파일이 있으면 파일로, 없으면 URL로 등록해요.
+  const handleUpload = async () => {
+    const url = uploadUrl.trim();
+    if (!uploadFile && !url) {
+      alert("PDF 파일을 고르거나 arXiv URL을 입력해 주세요.");
+      return;
+    }
+    setIsUploading(true);
+    try {
+      if (uploadFile) {
+        await registerPaperByFile(uploadFile);
+      } else {
+        await registerPaperByUrl(url);
+      }
+      closeUpload();
+      setReloadKey((key) => key + 1); // 목록 새로고침
+    } catch (error) {
+      alert((error as Error).message);
+    }
+    setIsUploading(false);
+  };
 
   const startEditTitle = (id: string, title: string) => {
     setEditingId(id);
@@ -54,14 +185,21 @@ function LibraryPage() {
     setEditingId(null);
   };
 
-  const saveTitle = () => {
+  const saveTitle = async () => {
     const title = newTitle.trim();
-
-    if (title !== "") {
-      setPaperList(paperList.map((paper) => (paper.userPaperId === editingId ? { ...paper, displayTitle: title } : paper)));
-    }
-
+    const id = editingId;
     setEditingId(null);
+
+    if (!id || title === "") return;
+
+    try {
+      await updatePaperTitle(id, title); // 백엔드에 저장하고
+      setPaperList((prev) =>
+        prev.map((paper) => (paper.userPaperId === id ? { ...paper, displayTitle: title } : paper))
+      ); // 성공하면 화면에도 반영
+    } catch (error) {
+      alert((error as Error).message);
+    }
   };
 
   const handleTitleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -102,23 +240,37 @@ function LibraryPage() {
         </aside>
         <main className="main-content">
           <div className="search-row">
-            <input type="text" className="search-input" placeholder="논문 제목, 저자, ID 검색" />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="논문 제목, 저자, ID 검색"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+            />
             <button className="upload-button" onClick={() => setIsUploadOpen(true)}>업로드</button>
           </div>
           <div className="filter-row">
-            <label className="checkbox-label">
-              <input type="checkbox" /> 읽음
-            </label>
-            <label className="checkbox-label">
-              <input type="checkbox" /> 안읽음
-            </label>
-            <label className="checkbox-label">
-              <input type="checkbox" /> 읽는중
-            </label>
+            {readStatusOptions.map((option) => (
+              <label key={option.value} className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={readStatuses.includes(option.value)}
+                  onChange={() => toggleReadStatus(option.value)}
+                />{" "}
+                {option.label}
+              </label>
+            ))}
           </div>
           <div 
           className="sort-row">
-            <button className="sort-dropdown">최신순 ▾</button>
+            <select className="sort-dropdown" value={sort} onChange={(e) => setSort(e.target.value)}>
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
             <div className="sort-right">
               <button 
                  className="year-dropdown"
@@ -126,7 +278,7 @@ function LibraryPage() {
               >
                  연도 ▾
               </button>
-              <button className="confirm-button">확인</button> 
+              <button className="confirm-button" onClick={applyYears}>확인</button> 
               {isYearOpen && (
                 <div className="year-popup">
                   <input
@@ -248,6 +400,7 @@ function LibraryPage() {
                         className="close-button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          setDeleteTargetId(paper.userPaperId);
                           setIsDeleteOpen(true);
                         }}
                       >
@@ -308,13 +461,31 @@ function LibraryPage() {
             <div className="modal-box">
               <div className="modal-header">
                 <span className="modal-title">PDF 업로드</span>
-                <button className="modal-close" onClick={() => setIsUploadOpen(false)}>x</button>
+                <button className="modal-close" onClick={closeUpload}>x</button>
               </div>
 
-              <div className="upload-dropzone">
+              <div
+                className="upload-dropzone"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDrop}
+              >
                 <div className="upload-icon">⬆️</div>
-                <div>Drag&Drop</div>
-                <div>또는 파일 선택</div>
+                {uploadFile ? (
+                  <div>{uploadFile.name}</div>
+                ) : (
+                  <>
+                    <div>Drag&Drop</div>
+                    <div>또는 파일 선택</div>
+                  </>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  hidden
+                  onChange={handleFileChange}
+                />
             </div>
 
             <div className="upload-divider">
@@ -323,11 +494,19 @@ function LibraryPage() {
               <div className="upload-divider-line" />
             </div>
 
-            <input type="text" className="url-input" placeholder="http://example.com" />
+            <input
+              type="text"
+              className="url-input"
+              placeholder="https://arxiv.org/abs/..."
+              value={uploadUrl}
+              onChange={(e) => setUploadUrl(e.target.value)}
+            />
 
             <div className="modal-footer">
-              <button className="modal-cancel" onClick={() => setIsUploadOpen(false)}>취소</button>
-              <button className="modal-save" onClick={() => setIsUploadOpen(false)}>저장</button>
+              <button className="modal-cancel" onClick={closeUpload}>취소</button>
+              <button className="modal-save" onClick={handleUpload} disabled={isUploading}>
+                {isUploading ? "등록 중..." : "저장"}
+              </button>
             </div>
         </div>
       </div>
@@ -345,7 +524,7 @@ function LibraryPage() {
           
           <div className="modal-footer">
             <button className="modal-cancel" onClick={() => setIsDeleteOpen(false)}>취소</button>
-            <button className="modal-save" onClick ={() => setIsDeleteOpen(false)}>삭제</button> 
+            <button className="modal-save" onClick={handleDelete}>삭제</button> 
           </div>
         </div>
       </div> 

@@ -3,6 +3,8 @@
 
 const API_BASE_URL = 'http://localhost:8080'
 
+// ===== 타입 =====
+
 // 논문 카드 1장의 모양 (백엔드 PaperListItemResponse)
 export type LibraryPaper = {
   userPaperId: string // 내 서재에 담긴 논문의 id → 리더로 넘길 때 이걸 씁니다
@@ -30,18 +32,108 @@ type PaperListResponse = {
   hasNext: boolean
 }
 
-// 내 서재 논문 목록을 가져옵니다. (GET /api/papers)
-export async function getPapers(): Promise<LibraryPaper[]> {
-  const response = await fetch(`${API_BASE_URL}/api/papers`, {
+// 연도 필터 항목 (GET /api/papers/filters/years)
+export type YearCount = {
+  year: number
+  count: number
+}
+
+// 논문 등록(파일/URL) 결과
+export type PaperRegisterResult = {
+  userPaperId: string
+  paperId: string
+  processingStatus: string
+  alreadyProcessed: boolean
+}
+
+// 목록 조회 조건 (모두 선택 사항)
+export type PaperListQuery = {
+  q?: string // 검색어
+  readStatus?: string[] // unread | reading | read
+  year?: number[] // 발행연도
+  sort?: string // recent | oldest | title | lastOpened ...
+}
+
+// ===== 공통 요청 함수 =====
+
+// 모든 요청에 로그인 토큰을 붙이고, 실패하면 백엔드가 준 에러 메시지로 에러를 던집니다.
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
     headers: {
       Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+      ...options.headers,
     },
   })
 
-  if (!response.ok) {
-    throw new Error(`논문 목록을 불러오지 못했어요. (${response.status})`)
+  // 삭제처럼 응답 본문이 없는 성공(204)
+  if (response.status === 204) {
+    return undefined as T
   }
 
-  const result: PaperListResponse = await response.json()
+  const result = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    throw new Error(result?.error?.message ?? `요청에 실패했어요. (${response.status})`)
+  }
+
+  return result as T
+}
+
+// ===== API =====
+
+// 내 서재 논문 목록 (GET /api/papers)
+export async function getPapers(query: PaperListQuery = {}): Promise<LibraryPaper[]> {
+  const params = new URLSearchParams()
+  if (query.q) params.append('q', query.q)
+  query.readStatus?.forEach((status) => params.append('readStatus', status))
+  query.year?.forEach((year) => params.append('year', String(year)))
+  if (query.sort) params.append('sort', query.sort)
+  params.append('limit', '50')
+
+  const result = await request<PaperListResponse>(`/api/papers?${params.toString()}`)
+  return result.data
+}
+
+// 연도 필터에 보여줄 연도 목록 (GET /api/papers/filters/years)
+export async function getYearFilters(): Promise<YearCount[]> {
+  const result = await request<{ data: YearCount[] }>('/api/papers/filters/years')
+  return result.data
+}
+
+// 카드 제목 바꾸기 (PATCH /api/papers/{userPaperId}/title)
+export async function updatePaperTitle(userPaperId: string, title: string): Promise<void> {
+  await request(`/api/papers/${userPaperId}/title`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title }),
+  })
+}
+
+// 논문 삭제 (DELETE /api/papers/{userPaperId})
+export async function deletePaper(userPaperId: string): Promise<void> {
+  await request(`/api/papers/${userPaperId}`, { method: 'DELETE' })
+}
+
+// arXiv URL로 논문 등록 (POST /api/papers/by-url)
+export async function registerPaperByUrl(url: string): Promise<PaperRegisterResult> {
+  const result = await request<{ data: PaperRegisterResult }>('/api/papers/by-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+  return result.data
+}
+
+// PDF 파일로 논문 등록 (POST /api/papers/by-file)
+// 파일은 FormData로 보내요. 이때 Content-Type은 브라우저가 알아서 정하니까 직접 넣지 않아요.
+export async function registerPaperByFile(file: File): Promise<PaperRegisterResult> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const result = await request<{ data: PaperRegisterResult }>('/api/papers/by-file', {
+    method: 'POST',
+    body: formData,
+  })
   return result.data
 }
