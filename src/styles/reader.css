@@ -1,0 +1,8 @@
+.reader-page {
+  display: flex;
+  height: 100vh;
+  background: #ffffff;
+  font-family: 'Inter', sans-serif;
+  color: #111827;
+  overflow: hidden;
+}
