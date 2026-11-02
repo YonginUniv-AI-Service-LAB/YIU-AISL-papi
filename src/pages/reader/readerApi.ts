@@ -268,25 +268,46 @@ export const getSuggestedQuestions = async (roomId: string) => {
   return result.data
 }
 
-// 45번 질문 보내기: 답변이 SSE(서버가 글자를 조금씩 보내주는 방식)로 옵니다.
+// 46번 메시지 하나 다시 불러오기 (답변 중에 새로고침했을 때 이어서 확인)
+export const getMessage = async (roomId: string, messageId: number) => {
+  const result = await request<DataResponse<Message>>(`/api/chat-rooms/${roomId}/messages/${messageId}`)
+  return result.data
+}
+
+// 50번 추천 질문 새로 받기
+export const refreshSuggestedQuestions = async (roomId: string) => {
+  const result = await request<DataResponse<SuggestedQuestion[]>>(`/api/chat-rooms/${roomId}/suggested-questions/refresh`, { method: 'POST' })
+  return result.data
+}
+
+// 47번 답변 중지: 지금까지 만들어진 답변 내용(content)을 돌려줍니다.
+export const cancelAnswer = async (roomId: string, messageId: number) => {
+  const result = await request<DataResponse<{ messageId: number; status: string; content: string }>>(
+    `/api/chat-rooms/${roomId}/messages/${messageId}/cancel`,
+    { method: 'POST' }
+  )
+  return result.data
+}
+
+// 45번 질문 보내기, 48번 다시 생성: 답변이 SSE(서버가 글자를 조금씩 보내주는 방식)로 옵니다.
 // 이벤트 순서는 message_created → token × N → citation × N → done (실패하면 error)입니다.
-// 백엔드에 아직 이 API가 올라오지 않아서, 이벤트 안의 필드 이름은 명세서 기준으로 추측한 값입니다.
-// 실제 API가 올라오면 Swagger를 보고 token 필드 이름 등을 한 번 더 확인해주세요.
+// (백엔드 MessageStreamingService 기준, 15초마다 오는 ping은 무시합니다.)
 export type QuestionStreamHandlers = {
+  onCreated: (messageId: number) => void
   onToken: (text: string) => void
   onCitation: (citation: Citation) => void
   onDone: (roomTitle: string | null) => void
 }
 
-export const sendQuestion = async (roomId: string, content: string, handlers: QuestionStreamHandlers, signal?: AbortSignal) => {
-  const response = await fetch(`${API_BASE_URL}/api/chat-rooms/${roomId}/messages`, {
+const streamAnswer = async (path: string, body: object | null, handlers: QuestionStreamHandlers, signal?: AbortSignal) => {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'text/event-stream',
       Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
     },
-    body: JSON.stringify({ content }),
+    body: body ? JSON.stringify(body) : undefined,
     signal,
   })
 
@@ -299,14 +320,14 @@ export const sendQuestion = async (roomId: string, content: string, handlers: Qu
   const decoder = new TextDecoder()
   let buffer = ''
 
-  // SSE는 빈 줄로 이벤트가 나뉘고, 각 이벤트는 "event: 이름"과 "data: 내용" 줄로 이루어져 있습니다.
+  // SSE는 빈 줄로 이벤트가 나뉘고, 각 이벤트는 "event:이름"과 "data:내용" 줄로 이루어져 있습니다.
   const handleEvent = (block: string) => {
     let eventName = 'message'
     const dataLines: string[] = []
 
     block.split('\n').forEach((line) => {
       if (line.startsWith('event:')) eventName = line.slice(6).trim()
-      if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart())
+      if (line.startsWith('data:')) dataLines.push(line.slice(5))
     })
 
     const rawData = dataLines.join('\n')
@@ -314,12 +335,13 @@ export const sendQuestion = async (roomId: string, content: string, handlers: Qu
     try {
       data = rawData ? JSON.parse(rawData) : {}
     } catch {
-      data = { text: rawData }
+      data = {}
     }
 
-    if (eventName === 'token') {
-      const text = data.text ?? data.token ?? data.delta ?? data.content ?? ''
-      handlers.onToken(String(text))
+    if (eventName === 'message_created') {
+      handlers.onCreated(Number(data.messageId))
+    } else if (eventName === 'token') {
+      handlers.onToken(String(data.delta ?? ''))
     } else if (eventName === 'citation') {
       handlers.onCitation(data as unknown as Citation)
     } else if (eventName === 'done') {
@@ -345,6 +367,13 @@ export const sendQuestion = async (roomId: string, content: string, handlers: Qu
 
   if (buffer.trim()) handleEvent(buffer)
 }
+
+export const sendQuestion = (roomId: string, content: string, handlers: QuestionStreamHandlers, signal?: AbortSignal) =>
+  streamAnswer(`/api/chat-rooms/${roomId}/messages`, { content }, handlers, signal)
+
+// 48번 다시 생성: 실패했거나 중지한 AI 답변을 같은 메시지 번호로 다시 만듭니다.
+export const retryAnswer = (roomId: string, messageId: number, handlers: QuestionStreamHandlers, signal?: AbortSignal) =>
+  streamAnswer(`/api/chat-rooms/${roomId}/messages/${messageId}/retry`, null, handlers, signal)
 
 // ===== 논문 / PDF =====
 

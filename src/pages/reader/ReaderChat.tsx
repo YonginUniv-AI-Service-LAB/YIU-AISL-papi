@@ -6,8 +6,8 @@ import ReaderPaperSelectModal from './ReaderPaperSelectModal'
 import ReaderSummary from './ReaderSummary'
 import ReaderCompare from './ReaderCompare'
 import ReaderChecklist from './ReaderChecklist'
-import { ApiError, getChunk, getComparison, getChecklist, getComparisonCitations, getMessages, getSuggestedQuestions, getSummary, requestChecklist, requestComparison, requestSummary, sendQuestion, waitUntilDone } from './readerApi'
-import type { Checklist, ChecklistResult, Citation, Comparison, Summary } from './readerApi'
+import { cancelAnswer, getChunk, getComparison, getChecklist, getComparisonCitations, getMessage, getMessages, getSuggestedQuestions, getSummary, refreshSuggestedQuestions, requestChecklist, requestComparison, requestSummary, retryAnswer, sendQuestion, waitUntilDone } from './readerApi'
+import type { Checklist, ChecklistResult, Citation, Comparison, QuestionStreamHandlers, Summary } from './readerApi'
 import type { EvidenceTarget, ReaderPaper } from './ReaderPage'
 
 type ReaderChatProps = {
@@ -24,16 +24,22 @@ type ReaderChatProps = {
 }
 
 type ChatMessage = {
+  key: number // 화면에서 말풍선을 구분하는 번호
+  messageId: number | null // 서버의 메시지 번호 (중지·다시 생성에 사용)
   role: 'user' | 'ai'
+  status: string // pending, streaming, completed, failed, canceled
   text: string
   citations: Citation[]
   fromSuggestion?: boolean
 }
 
-const toolButtons = ['추천 질문', '비교', '요약', '재현 가능성']
+let nextMessageKey = 0
+const createMessage = (message: Omit<ChatMessage, 'key'>): ChatMessage => ({ ...message, key: nextMessageKey++ })
 
-// 백엔드에 질문 API(45번)가 아직 없을 때 보여줄 안내 문구입니다.
-const NO_QUESTION_API_MESSAGE = '아직 질문 기능이 서버와 연결되지 않았어요. 질문 API가 추가되면 실제 답변이 표시됩니다.'
+// 아직 답변을 만드는 중인 상태
+const isInProgress = (status: string) => status === 'pending' || status === 'streaming'
+
+const toolButtons = ['추천 질문', '비교', '요약', '재현 가능성']
 
 function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompare, onCloseCompare, onShowEvidence, onShowComparisonEvidence, onShowPaperEvidence, onRoomTitleChange }: ReaderChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -43,6 +49,8 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
   const [activeEvidence, setActiveEvidence] = useState<string | null>(null)
   const [isAnswering, setIsAnswering] = useState(false)
   const answerController = useRef<AbortController | null>(null)
+  const answeringMessageId = useRef<number | null>(null)
+  const [isRefreshingSuggestions, setIsRefreshingSuggestions] = useState(false)
 
   const [isSummarySelectOpen, setIsSummarySelectOpen] = useState(false)
   const [isSummaryOpen, setIsSummaryOpen] = useState(false)
@@ -71,12 +79,18 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
       .then((result) => {
         if (ignore) return
         // 백엔드는 최신 메시지부터 주므로 화면에는 오래된 순서로 뒤집어서 보여줍니다.
-        const history = [...result].reverse().map((message): ChatMessage => ({
+        const history = [...result].reverse().map((message) => createMessage({
+          messageId: message.messageId,
           role: message.role === 'user' ? 'user' : 'ai',
-          text: message.content,
-          citations: message.citations,
+          status: message.status,
+          text: message.content ?? '',
+          citations: message.citations ?? [],
         }))
         setMessages(history)
+
+        // 답변 중에 새로고침했다면, 답변이 끝날 때까지 기다렸다가 이어서 보여줍니다.
+        const unfinished = history.find((message) => message.role === 'ai' && isInProgress(message.status))
+        if (unfinished?.messageId) followUnfinishedAnswer(unfinished.key, unfinished.messageId, () => ignore)
       })
       .catch(() => {
         if (!ignore) setMessages([])
@@ -93,10 +107,14 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     return () => {
       ignore = true
       answerController.current?.abort()
+      answeringMessageId.current = null
+      setIsAnswering(false)
       summaryRequestId.current += 1
       compareRequestId.current += 1
       checklistRequestId.current += 1
     }
+    // 대화방이 바뀔 때만 다시 불러오면 되므로 roomId만 넣었습니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId])
 
   const handleToolClick = (tool: string) => {
@@ -114,43 +132,129 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     }
   }
 
-  // 마지막 AI 말풍선(지금 답변 중인 말풍선)만 바꿉니다.
-  const updateLastAnswer = (update: (message: ChatMessage) => ChatMessage) => {
-    setMessages((current) => current.map((message, index) => (index === current.length - 1 ? update(message) : message)))
+  // key가 같은 말풍선 하나만 바꿉니다.
+  const updateMessage = (key: number, update: (message: ChatMessage) => ChatMessage) => {
+    setMessages((current) => current.map((message) => (message.key === key ? update(message) : message)))
   }
 
-  const askQuestion = async (question: string, fromSuggestion: boolean) => {
-    if (isAnswering) return
+  // 46번: 새로고침 전에 만들던 답변을 2초마다 확인해서 끝나면 보여줍니다.
+  async function followUnfinishedAnswer(key: number, messageId: number, isStopped: () => boolean) {
+    setIsAnswering(true)
+    answeringMessageId.current = messageId
 
-    setMessages((current) => [
-      ...current,
-      { role: 'user', text: question, citations: [], fromSuggestion },
-      { role: 'ai', text: '', citations: [] },
-    ])
+    try {
+      while (!isStopped()) {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        if (isStopped()) return
+
+        const message = await getMessage(roomId, messageId)
+        updateMessage(key, (current) => ({ ...current, status: message.status, text: message.content ?? '', citations: message.citations ?? [] }))
+        if (!isInProgress(message.status)) break
+      }
+    } catch {
+      updateMessage(key, (current) => ({ ...current, status: 'failed' }))
+    } finally {
+      if (!isStopped()) {
+        answeringMessageId.current = null
+        setIsAnswering(false)
+      }
+    }
+  }
+
+  // 45번 질문 보내기와 48번 다시 생성에서 같이 쓰는 답변 받기
+  const receiveAnswer = async (key: number, start: (handlers: QuestionStreamHandlers, signal: AbortSignal) => Promise<void>) => {
     setIsAnswering(true)
 
     const controller = new AbortController()
     answerController.current = controller
 
     try {
-      await sendQuestion(roomId, question, {
-        onToken: (text) => updateLastAnswer((message) => ({ ...message, text: message.text + text })),
-        onCitation: (citation) => updateLastAnswer((message) => ({ ...message, citations: [...message.citations, citation] })),
-        // 첫 질문이 끝나면 서버가 대화 이름을 자동으로 바꾸므로 사이드바를 다시 불러옵니다.
-        onDone: () => onRoomTitleChange(),
+      await start({
+        onCreated: (messageId) => {
+          answeringMessageId.current = messageId
+          updateMessage(key, (message) => ({ ...message, messageId, status: 'streaming' }))
+        },
+        onToken: (text) => updateMessage(key, (message) => ({ ...message, text: message.text + text })),
+        onCitation: (citation) => updateMessage(key, (message) => ({ ...message, citations: [...message.citations, citation] })),
+        onDone: () => {
+          updateMessage(key, (message) => ({ ...message, status: 'completed' }))
+          // 첫 질문이 끝나면 서버가 대화 이름을 자동으로 바꾸므로 사이드바를 다시 불러옵니다.
+          onRoomTitleChange()
+        },
       }, controller.signal)
+
+      // done 없이 연결이 끝났으면(서버에서 중지 등) 다시 생성할 수 있게 표시합니다.
+      updateMessage(key, (message) => (isInProgress(message.status) ? { ...message, status: 'failed' } : message))
     } catch (error) {
       if (controller.signal.aborted) return
 
-      // 404·405는 질문 API가 아직 백엔드에 없다는 뜻입니다.
-      const isMissingApi = error instanceof ApiError && (error.status === 404 || error.status === 405)
-      const errorText = isMissingApi ? NO_QUESTION_API_MESSAGE : error instanceof Error ? error.message : '답변을 받지 못했습니다.'
-      updateLastAnswer((message) => ({ ...message, text: message.text ? `${message.text}\n\n(${errorText})` : errorText }))
+      const errorText = error instanceof Error ? error.message : '답변을 받지 못했습니다.'
+      updateMessage(key, (message) => ({ ...message, status: 'failed', text: message.text ? `${message.text}\n\n(${errorText})` : errorText }))
     } finally {
       if (answerController.current === controller) {
         answerController.current = null
+        answeringMessageId.current = null
         setIsAnswering(false)
       }
+    }
+  }
+
+  const askQuestion = (question: string, fromSuggestion: boolean) => {
+    if (isAnswering) return
+
+    const answer = createMessage({ messageId: null, role: 'ai', status: 'pending', text: '', citations: [] })
+    setMessages((current) => [
+      ...current,
+      createMessage({ messageId: null, role: 'user', status: 'completed', text: question, citations: [], fromSuggestion }),
+      answer,
+    ])
+
+    receiveAnswer(answer.key, (handlers, signal) => sendQuestion(roomId, question, handlers, signal))
+  }
+
+  // 48번 다시 생성
+  const retryMessage = (message: ChatMessage) => {
+    if (isAnswering || message.messageId === null) return
+
+    const messageId = message.messageId
+    updateMessage(message.key, (current) => ({ ...current, status: 'pending', text: '', citations: [] }))
+    receiveAnswer(message.key, (handlers, signal) => retryAnswer(roomId, messageId, handlers, signal))
+  }
+
+  // 47번 답변 중지: 지금까지 나온 답변은 그대로 남깁니다.
+  const stopAnswer = async () => {
+    const messageId = answeringMessageId.current
+    const controller = answerController.current
+    const answering = messages.find((message) => message.role === 'ai' && isInProgress(message.status))
+
+    if (messageId !== null) {
+      try {
+        const result = await cancelAnswer(roomId, messageId)
+        if (answering) updateMessage(answering.key, (message) => ({ ...message, status: 'canceled', text: result.content || message.text }))
+      } catch {
+        // 이미 답변이 끝났으면 중지할 게 없습니다.
+      }
+    }
+
+    if (controller) {
+      controller.abort()
+      if (answering) updateMessage(answering.key, (message) => (isInProgress(message.status) ? { ...message, status: 'canceled' } : message))
+      answerController.current = null
+    }
+    answeringMessageId.current = null
+    setIsAnswering(false)
+  }
+
+  // 50번 추천 질문 새로 받기
+  const refreshSuggestions = async () => {
+    setIsRefreshingSuggestions(true)
+    try {
+      const result = await refreshSuggestedQuestions(roomId)
+      setSuggestedQuestions(result.map((item) => item.question))
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '추천 질문을 새로 받지 못했습니다.')
+    } finally {
+      setIsRefreshingSuggestions(false)
     }
   }
 
@@ -308,16 +412,17 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
       </div>
 
       <div className="reader-chat-messages">
-        {messages.map((message, index) =>
+        {messages.map((message) =>
           message.role === 'user' ? (
-            <div key={index} className={`reader-chat-bubble-user ${message.fromSuggestion ? 'reader-chat-bubble-user-suggested' : ''}`}>
+            <div key={message.key} className={`reader-chat-bubble-user ${message.fromSuggestion ? 'reader-chat-bubble-user-suggested' : ''}`}>
               {message.text}
             </div>
           ) : (
-            <div key={index} className="reader-chat-bubble-ai">
-              <p className="reader-chat-bubble-ai-text">{message.text || '답변을 만드는 중이에요...'}</p>
+            <div key={message.key} className="reader-chat-bubble-ai">
+              <p className="reader-chat-bubble-ai-text">{message.text || (isInProgress(message.status) ? '답변을 만드는 중이에요...' : '')}</p>
+              {message.status === 'canceled' && <p className="reader-chat-answer-note">답변을 중지했어요.</p>}
               {message.citations.map((citation) => {
-                const key = `${index}-${citation.rank}`
+                const key = `${message.key}-${citation.rank}`
 
                 return (
                   <button key={key} className={`reader-chat-evidence-button ${activeEvidence === key ? 'reader-chat-evidence-button-active' : ''}`} type="button" onClick={() => showCitation(key, citation)}>
@@ -325,6 +430,11 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
                   </button>
                 )
               })}
+              {(message.status === 'failed' || message.status === 'canceled') && message.messageId !== null && (
+                <button className="reader-chat-evidence-button" type="button" disabled={isAnswering} onClick={() => retryMessage(message)}>
+                  🔄 다시 생성
+                </button>
+              )}
             </div>
           )
         )}
@@ -332,7 +442,12 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
 
       {(messages.length === 0 || isSuggestionOpen) && suggestedQuestions.length > 0 && (
         <div className="reader-chat-suggestions">
-          <p className="reader-chat-suggestions-title">추천 질문</p>
+          <div className="reader-chat-suggestions-header">
+            <p className="reader-chat-suggestions-title">추천 질문</p>
+            <button className="reader-chat-suggestions-refresh" type="button" disabled={isRefreshingSuggestions} onClick={refreshSuggestions}>
+              {isRefreshingSuggestions ? '받는 중...' : '🔄 새로 받기'}
+            </button>
+          </div>
           <div className="reader-chat-suggestions-list">
             {suggestedQuestions.map((question) => (
               <button key={question} className="reader-chat-suggestion" type="button" onClick={() => { setIsSuggestionOpen(false); askQuestion(question, true) }}>
@@ -399,9 +514,15 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
 
       <form className="reader-chat-input-box" onSubmit={handleSubmit}>
         <input className="reader-chat-input" type="text" placeholder="논문에 대해 질문해보세요." value={inputValue} onChange={(event) => setInputValue(event.target.value)} />
-        <button className="reader-chat-send-button" type="submit" aria-label="전송" disabled={isAnswering}>
-          <ArrowUpIcon />
-        </button>
+        {isAnswering ? (
+          <button className="reader-chat-send-button" type="button" aria-label="답변 중지" onClick={stopAnswer}>
+            <span className="reader-chat-stop-icon" />
+          </button>
+        ) : (
+          <button className="reader-chat-send-button" type="submit" aria-label="전송">
+            <ArrowUpIcon />
+          </button>
+        )}
       </form>
     </section>
   )
