@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import '../../styles/readerSidebar.css'
 import { deleteChatRoom, getChatRooms, logout, renameChatRoom } from './readerApi'
 import type { ChatRoom } from './readerApi'
-import { HomeIcon, LogoutIcon, PencilIcon, SearchIcon, SettingsIcon, SidebarIcon, TrashIcon } from './ReaderIcons'
+import { FolderIcon, LogoutIcon, PencilIcon, SettingsIcon, SidebarIcon, TrashIcon } from './ReaderIcons'
 
 type ReaderSidebarProps = {
   isOpen: boolean
@@ -128,14 +128,11 @@ function ReaderSidebar({ isOpen, onToggle, activeRoomId, roomsVersion }: ReaderS
         </button>
       </div>
 
+      {/* 라이브러리 페이지 사이드바와 같게 "모든 문서함"만 둡니다. (탐색 기능은 현재 없음) */}
       <nav className="reader-sidebar-menu">
         <button className="reader-sidebar-menu-item" type="button" onClick={() => navigate('/library')}>
-          <HomeIcon />
-          {isOpen && '홈'}
-        </button>
-        <button className="reader-sidebar-menu-item" type="button">
-          <SearchIcon />
-          {isOpen && '탐색'}
+          <FolderIcon />
+          {isOpen && '모든 문서함'}
         </button>
       </nav>
 
