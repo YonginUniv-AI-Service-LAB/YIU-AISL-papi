@@ -500,12 +500,12 @@ function LibraryPage() {
                         <span>{paper.authors.join(", ")}</span>
                       </div>
                     )}
-                    {/* TODO: 소속 기관은 GET /api/papers 응답에 없어서 잠시 숨김 (백엔드 확인 필요)
-                    <div className="info-row">
-                      <span className="info-label">소속 기관</span>
-                      <span>{paper.org}</span>
-                    </div>
-                    */}
+                    {paper.affiliations.length > 0 && (
+                      <div className="info-row">
+                        <span className="info-label">소속 기관</span>
+                        <span>{paper.affiliations.join(", ")}</span>
+                      </div>
+                    )}
                     {paper.publishedYear && (
                       <div className="info-row">
                         <span className="info-label">발행연도</span>
@@ -527,14 +527,12 @@ function LibraryPage() {
                         ))}
                       </select>
                     </div>
-                    {/* TODO: 학회 / 저널은 GET /api/papers 응답에 없어서 잠시 숨김 (백엔드 확인 필요)
-                    {paper.journal && (
+                    {paper.venue && (
                       <div className="info-row">
                         <span className="info-label">학회 / 저널</span>
-                        <span>{paper.journal}</span>
+                        <span>{paper.venue}</span>
                       </div>
                     )}
-                    */}
                   </div>
 
 

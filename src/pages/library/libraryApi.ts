@@ -12,6 +12,8 @@ export type LibraryPaper = {
   displayTitle: string | null // 사용자가 바꾼 제목. 없으면 null
   title: string // 논문 원제
   authors: string[]
+  venue: string | null // 학회/저널. 없으면 null
+  affiliations: string[] // 소속 기관. 없으면 빈 배열
   publishedYear: number | null
   arxivId: string | null
   pageCount: number | null

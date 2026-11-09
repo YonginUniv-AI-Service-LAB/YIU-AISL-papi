@@ -146,7 +146,7 @@
 
 .card-grid {
     display: grid;
-    grid-template-columns: repeat(3,1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr)); /* 내용 길이와 상관없이 카드 3개를 같은 폭으로 */
     gap: 20px;
 }
 
@@ -156,6 +156,7 @@
     border-radius: 12px;
     padding: 16px;
     display: flex; flex-direction: column; gap: 10px;
+    min-width: 0;
 }
 
 .paper-card.selected {
@@ -168,11 +169,12 @@
     align-items: flex-start;
     gap: 8px;
     width: 100%; /* 카드 폭을 꽉 채워야 제목이 남는 공간을 쓸 수 있어요 */
+    flex-wrap: wrap; /* 제목이 길면 상태 표시를 다음 줄로 보내요 */
 }
 
 /* 카드 제목 영역: 남는 폭을 차지하고, 긴 제목은 줄바꿈 */
 .card-title-label {
-    flex: 1;
+    flex: 1 1 auto; /* 제목이 한 줄에 다 들어가면 상태와 나란히, 길면 상태 표시가 아래로 내려가요 */
     min-width: 0;
     display: flex;
     align-items: flex-start;
@@ -192,6 +194,7 @@
     align-items: center;
     gap: 8px;
     flex-shrink: 0; /* 상태 글자가 세로로 쪼개지지 않게 */
+    margin-left: auto; /* 아래로 내려가도 오른쪽에 붙게 */
     white-space: nowrap;
 }
 
