@@ -12,8 +12,11 @@ import {
   updateReadStatus,
   getProcessingStatuses,
   retryProcessing,
+  getRecentChatRooms,
+  getMyNickname,
   type LibraryPaper,
   type YearCount,
+  type RecentChatRoom,
 } from "./libraryApi";
 
 // 화면에 보여줄 처리 상태 이름 (백엔드 processingStatus → 한글)
@@ -49,7 +52,6 @@ const sortOptions = [
   { label: "최근 열람순", value: "lastOpened" },
 ];
 
-const recentItems = ["논문 관련 질문", "논문 내용 요약", "우선 순위 추천"];
 function LibraryPage() {
   const navigate = useNavigate();
   const [paperList, setPaperList] = useState<LibraryPaper[]>([]);
@@ -164,6 +166,25 @@ function LibraryPage() {
     } catch (error) {
       alert((error as Error).message);
     }
+  };
+
+  // 사이드바: 최근 채팅방과 내 닉네임을 불러옵니다.
+  const [recentRooms, setRecentRooms] = useState<RecentChatRoom[]>([]);
+  const [nickname, setNickname] = useState("");
+
+  useEffect(() => {
+    getRecentChatRooms()
+      // 논문이 모두 삭제된 빈 채팅방은 열 수 없어서 빼고 보여줘요
+      .then((rooms) => setRecentRooms(rooms.filter((room) => room.papers.length > 0)))
+      .catch(() => setRecentRooms([]));
+    getMyNickname()
+      .then((name) => setNickname(name))
+      .catch(() => setNickname(""));
+  }, [reloadKey]);
+
+  // 최근 채팅방을 누르면 그 채팅방의 리더로 이동해요 (리더 사이드바와 같은 주소 형식)
+  const openChatRoom = (room: RecentChatRoom) => {
+    navigate(`/reader/${room.papers[0].userPaperId}?room=${room.chatRoomId}`);
   };
 
   // 연도 필터에 보여줄 연도 목록을 불러옵니다.
@@ -291,10 +312,12 @@ function LibraryPage() {
         
         <ul className="sidebar-list">
         
-          {recentItems.map((item) => (
-            <li key={item} className="sidebar-list-item">
-            <span>+ {item}</span>
-            <span className="more-icon">...</span>
+          {recentRooms.length === 0 && (
+            <li className="sidebar-list-empty">아직 대화가 없어요</li>
+          )}
+          {recentRooms.map((room) => (
+            <li key={room.chatRoomId} className="sidebar-list-item" onClick={() => openChatRoom(room)}>
+            <span className="sidebar-list-title">{room.title || "새 대화"}</span>
           </li>
           ))}
           
@@ -303,7 +326,7 @@ function LibraryPage() {
         </div>
         <div className="sidebar-footer">
           <div className="avatar" />
-          <span>용용이</span>
+          <span>{nickname}</span>
         </div>
         </aside>
         <main className="main-content">
@@ -538,7 +561,16 @@ function LibraryPage() {
 
                   {getProgress(paper) > 0 && (
                     <>
-                      <a href="#" className="summary-link">요약 보기 &gt;</a>
+                      <button
+                        type="button"
+                        className="summary-link"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/reader/${paper.userPaperId}`);
+                        }}
+                      >
+                        요약 보기 &gt;
+                      </button>
                       <div className="progress-row">
                         <span>읽는 중</span>
                         <div className="progress-bar">

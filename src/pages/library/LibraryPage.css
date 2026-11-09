@@ -471,3 +471,26 @@
   color: #374151;
   cursor: pointer;
 }
+
+/* 사이드바 최근 채팅방: 긴 제목은 한 줄로 줄이고 말줄임 */
+.sidebar-list-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-list-empty {
+  padding: 6px 0;
+  font-size: 13px;
+  color: #999;
+}
+
+/* "요약 보기 >"를 버튼으로 바꿨으니 기본 버튼 모양을 없애요 */
+button.summary-link {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}

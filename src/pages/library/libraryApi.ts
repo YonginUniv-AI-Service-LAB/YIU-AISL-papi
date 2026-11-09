@@ -175,3 +175,25 @@ export async function getProcessingStatuses(userPaperIds: string[]): Promise<Pro
 export async function retryProcessing(userPaperId: string): Promise<void> {
   await request(`/api/papers/${userPaperId}/processing/retry`, { method: 'POST' })
 }
+
+// ===== 사이드바 (최근 채팅방 / 내 정보) =====
+
+// 사이드바 Recent에 보여줄 채팅방 1개 (GET /api/chat-rooms)
+export type RecentChatRoom = {
+  chatRoomId: string
+  title: string
+  papers: { userPaperId: string; title: string; position: number }[]
+  lastMessageAt: string | null
+}
+
+// 최근 채팅방 목록 (GET /api/chat-rooms)
+export async function getRecentChatRooms(): Promise<RecentChatRoom[]> {
+  const result = await request<{ data: RecentChatRoom[] }>('/api/chat-rooms?limit=10')
+  return result.data
+}
+
+// 내 닉네임 (GET /api/me)
+export async function getMyNickname(): Promise<string> {
+  const result = await request<{ data: { nickname: string | null } }>('/api/me')
+  return result.data.nickname ?? ''
+}
