@@ -1,19 +1,19 @@
 // 리더 페이지에서 사용하는 백엔드 API 모음입니다.
 // 요청 주소와 데이터 형식은 백엔드(YIU-AISL-papi-Server) develop 브랜치의 Swagger 기준입니다.
-
+ 
 const API_BASE_URL = 'http://localhost:8080'
-
+ 
 export class ApiError extends Error {
   status: number
   code?: string
-
+ 
   constructor(status: number, message: string, code?: string) {
     super(message)
     this.status = status
     this.code = code
   }
 }
-
+ 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -23,14 +23,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options.headers,
     },
   })
-
+ 
   // 삭제 등 성공 응답이 204 No Content인 경우
   if (response.status === 204) {
     return undefined as T
   }
-
+ 
   const result = await response.json().catch(() => null)
-
+ 
   if (!response.ok) {
     throw new ApiError(
       response.status,
@@ -38,33 +38,33 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       result?.error?.code
     )
   }
-
+ 
   return result as T
 }
-
+ 
 type DataResponse<T> = { data: T }
-
+ 
 type CursorResponse<T> = {
   data: T[]
   nextCursor: string | null
   hasNext: boolean
 }
-
+ 
 // ===== 타입 =====
-
+ 
 export type Bbox = {
   x0: number
   y0: number
   x1: number
   y1: number
 }
-
+ 
 export type ChatRoomPaper = {
   userPaperId: string
   title: string
   position: number
 }
-
+ 
 export type ChatRoom = {
   chatRoomId: string
   title: string
@@ -72,7 +72,7 @@ export type ChatRoom = {
   papers: ChatRoomPaper[]
   lastMessageAt: string | null
 }
-
+ 
 export type ChatRoomDetailPaper = {
   userPaperId: string
   paperId: string
@@ -85,13 +85,13 @@ export type ChatRoomDetailPaper = {
   hasSummary: boolean
   hasChecklist: boolean
 }
-
+ 
 export type ChatRoomDetail = {
   chatRoomId: string
   title: string
   papers: ChatRoomDetailPaper[]
 }
-
+ 
 export type Citation = {
   rank: number
   paperId: string
@@ -100,7 +100,7 @@ export type Citation = {
   sectionLabel: string | null
   quote: string
 }
-
+ 
 export type Message = {
   messageId: number
   role: 'user' | 'assistant'
@@ -108,32 +108,32 @@ export type Message = {
   content: string
   citations: Citation[]
 }
-
+ 
 export type SuggestedQuestion = {
   question: string
   rank: number
 }
-
+ 
 export type LibraryPaper = {
   userPaperId: string
   displayTitle: string | null
   title: string
   processingStatus: string
 }
-
+ 
 export type PdfInfo = {
   pdfUrl: string
   expiresIn: number
   pageCount: number
 }
-
+ 
 export type Chunk = {
   chunkId: number
   pageNo: number
   bbox: Bbox | null
   content: string
 }
-
+ 
 export type Highlight = {
   highlightId: number
   chatRoomId: string | null
@@ -142,9 +142,9 @@ export type Highlight = {
   text: string
   color: string | null
 }
-
+ 
 export type InsightStatus = 'pending' | 'completed' | 'failed'
-
+ 
 export type SummaryCitation = {
   field: string
   pageNo: number | null
@@ -152,7 +152,7 @@ export type SummaryCitation = {
   quote: string
   chunkId: number | null
 }
-
+ 
 export type Summary = {
   status: InsightStatus
   content: {
@@ -167,7 +167,7 @@ export type Summary = {
   citations: SummaryCitation[]
   glossary: { term: string; explanation: string }[]
 }
-
+ 
 export type Comparison = {
   comparisonId: string
   status: InsightStatus
@@ -176,9 +176,9 @@ export type Comparison = {
   tableData: Record<string, Record<string, string>> | null
   narrative: { comparisonSummary: string } | null
 }
-
+ 
 export type ChecklistResultStatus = '충족' | '미충족' | '불명확' | '해당없음'
-
+ 
 export type ChecklistResult = {
   itemCode: string
   category: string
@@ -190,7 +190,7 @@ export type ChecklistResult = {
   pageNo: number | null
   chunkId: number | null
 }
-
+ 
 export type Checklist = {
   status: InsightStatus
   // 충족·미충족·불명확·해당없음 개수 (완료 전에는 null)
@@ -199,7 +199,7 @@ export type Checklist = {
   disclaimer: string
   errorCode: string | null
 }
-
+ 
 export type ComparisonCitation = {
   field: string
   position: number
@@ -207,19 +207,19 @@ export type ComparisonCitation = {
   quote: string
   chunkId: number | null
 }
-
+ 
 // 화면에 보여줄 논문 이름 (사용자가 바꾼 이름이 있으면 그 이름)
 export const getPaperTitle = (paper: { displayTitle?: string | null; title: string }) =>
   paper.displayTitle || paper.title
-
+ 
 // ===== 채팅방 =====
-
+ 
 export const getChatRooms = async (userPaperId?: string) => {
   const query = userPaperId ? `?userPaperId=${userPaperId}&limit=50` : '?limit=50'
   const result = await request<CursorResponse<ChatRoom>>(`/api/chat-rooms${query}`)
   return result.data
 }
-
+ 
 export const createChatRoom = async (userPaperIds: string[]) => {
   const result = await request<DataResponse<{ chatRoomId: string }>>('/api/chat-rooms', {
     method: 'POST',
@@ -227,12 +227,12 @@ export const createChatRoom = async (userPaperIds: string[]) => {
   })
   return result.data
 }
-
+ 
 export const getChatRoomDetail = async (roomId: string) => {
   const result = await request<DataResponse<ChatRoomDetail>>(`/api/chat-rooms/${roomId}`)
   return result.data
 }
-
+ 
 export const renameChatRoom = async (roomId: string, title: string) => {
   const result = await request<DataResponse<{ title: string }>>(`/api/chat-rooms/${roomId}/title`, {
     method: 'PATCH',
@@ -240,46 +240,46 @@ export const renameChatRoom = async (roomId: string, title: string) => {
   })
   return result.data
 }
-
+ 
 export const deleteChatRoom = (roomId: string) =>
   request<void>(`/api/chat-rooms/${roomId}`, { method: 'DELETE' })
-
+ 
 export const addPapersToChatRoom = (roomId: string, userPaperIds: string[]) =>
   request<void>(`/api/chat-rooms/${roomId}/papers`, {
     method: 'POST',
     body: JSON.stringify({ userPaperIds }),
   })
-
+ 
 export const saveLastPage = (roomId: string, userPaperId: string, pageNo: number) =>
   request<void>(`/api/chat-rooms/${roomId}/papers/${userPaperId}/last-page`, {
     method: 'PATCH',
     body: JSON.stringify({ pageNo }),
   })
-
+ 
 // ===== 대화 =====
-
+ 
 export const getMessages = async (roomId: string) => {
   const result = await request<CursorResponse<Message>>(`/api/chat-rooms/${roomId}/messages?limit=50`)
   return result.data
 }
-
+ 
 export const getSuggestedQuestions = async (roomId: string) => {
   const result = await request<DataResponse<SuggestedQuestion[]>>(`/api/chat-rooms/${roomId}/suggested-questions`)
   return result.data
 }
-
+ 
 // 46번 메시지 하나 다시 불러오기 (답변 중에 새로고침했을 때 이어서 확인)
 export const getMessage = async (roomId: string, messageId: number) => {
   const result = await request<DataResponse<Message>>(`/api/chat-rooms/${roomId}/messages/${messageId}`)
   return result.data
 }
-
+ 
 // 50번 추천 질문 새로 받기
 export const refreshSuggestedQuestions = async (roomId: string) => {
   const result = await request<DataResponse<SuggestedQuestion[]>>(`/api/chat-rooms/${roomId}/suggested-questions/refresh`, { method: 'POST' })
   return result.data
 }
-
+ 
 // 47번 답변 중지: 지금까지 만들어진 답변 내용(content)을 돌려줍니다.
 export const cancelAnswer = async (roomId: string, messageId: number) => {
   const result = await request<DataResponse<{ messageId: number; status: string; content: string }>>(
@@ -288,7 +288,7 @@ export const cancelAnswer = async (roomId: string, messageId: number) => {
   )
   return result.data
 }
-
+ 
 // 45번 질문 보내기, 48번 다시 생성: 답변이 SSE(서버가 글자를 조금씩 보내주는 방식)로 옵니다.
 // 이벤트 순서는 message_created → token × N → citation × N → done (실패하면 error)입니다.
 // (백엔드 MessageStreamingService 기준, 15초마다 오는 ping은 무시합니다.)
@@ -298,7 +298,7 @@ export type QuestionStreamHandlers = {
   onCitation: (citation: Citation) => void
   onDone: (roomTitle: string | null) => void
 }
-
+ 
 const streamAnswer = async (path: string, body: object | null, handlers: QuestionStreamHandlers, signal?: AbortSignal) => {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
@@ -310,26 +310,26 @@ const streamAnswer = async (path: string, body: object | null, handlers: Questio
     body: body ? JSON.stringify(body) : undefined,
     signal,
   })
-
+ 
   if (!response.ok || !response.body) {
     const result = await response.json().catch(() => null)
     throw new ApiError(response.status, result?.error?.message ?? '질문을 보내지 못했습니다.', result?.error?.code)
   }
-
+ 
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
-
+ 
   // SSE는 빈 줄로 이벤트가 나뉘고, 각 이벤트는 "event:이름"과 "data:내용" 줄로 이루어져 있습니다.
   const handleEvent = (block: string) => {
     let eventName = 'message'
     const dataLines: string[] = []
-
+ 
     block.split('\n').forEach((line) => {
       if (line.startsWith('event:')) eventName = line.slice(6).trim()
       if (line.startsWith('data:')) dataLines.push(line.slice(5))
     })
-
+ 
     const rawData = dataLines.join('\n')
     let data: Record<string, unknown>
     try {
@@ -337,7 +337,7 @@ const streamAnswer = async (path: string, body: object | null, handlers: Questio
     } catch {
       data = {}
     }
-
+ 
     if (eventName === 'message_created') {
       handlers.onCreated(Number(data.messageId))
     } else if (eventName === 'token') {
@@ -350,13 +350,13 @@ const streamAnswer = async (path: string, body: object | null, handlers: Questio
       throw new ApiError(0, String(data.message ?? '답변을 만드는 중 문제가 생겼습니다.'), data.code as string | undefined)
     }
   }
-
+ 
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
-
+ 
     buffer += decoder.decode(value, { stream: true }).replace(/\r/g, '')
-
+ 
     let index = buffer.indexOf('\n\n')
     while (index !== -1) {
       handleEvent(buffer.slice(0, index))
@@ -364,41 +364,41 @@ const streamAnswer = async (path: string, body: object | null, handlers: Questio
       index = buffer.indexOf('\n\n')
     }
   }
-
+ 
   if (buffer.trim()) handleEvent(buffer)
 }
-
+ 
 export const sendQuestion = (roomId: string, content: string, handlers: QuestionStreamHandlers, signal?: AbortSignal) =>
   streamAnswer(`/api/chat-rooms/${roomId}/messages`, { content }, handlers, signal)
-
+ 
 // 48번 다시 생성: 실패했거나 중지한 AI 답변을 같은 메시지 번호로 다시 만듭니다.
 export const retryAnswer = (roomId: string, messageId: number, handlers: QuestionStreamHandlers, signal?: AbortSignal) =>
   streamAnswer(`/api/chat-rooms/${roomId}/messages/${messageId}/retry`, null, handlers, signal)
-
+ 
 // ===== 논문 / PDF =====
-
+ 
 export const getLibraryPapers = async () => {
   const result = await request<CursorResponse<LibraryPaper>>('/api/papers?limit=50')
   return result.data
 }
-
+ 
 export const getPdfInfo = async (userPaperId: string) => {
   const result = await request<DataResponse<PdfInfo>>(`/api/papers/${userPaperId}/pdf?mode=json`)
   return result.data
 }
-
+ 
 export const getChunk = async (userPaperId: string, chunkId: number) => {
   const result = await request<DataResponse<Chunk>>(`/api/papers/${userPaperId}/chunks/${chunkId}`)
   return result.data
 }
-
+ 
 // ===== 형광펜 =====
-
+ 
 export const getHighlights = async (userPaperId: string) => {
   const result = await request<DataResponse<Highlight[]>>(`/api/papers/${userPaperId}/highlights`)
   return result.data
 }
-
+ 
 export const createHighlight = async (
   userPaperId: string,
   highlight: { chatRoomId: string; pageNo: number; bbox: Bbox; text: string }
@@ -409,23 +409,23 @@ export const createHighlight = async (
   })
   return result.data
 }
-
+ 
 export const deleteHighlight = (userPaperId: string, highlightId: number) =>
   request<void>(`/api/papers/${userPaperId}/highlights/${highlightId}`, { method: 'DELETE' })
-
+ 
 // ===== 요약 / 비교 =====
-
+ 
 export const requestSummary = (userPaperId: string, chatRoomId: string) =>
   request<void>(`/api/papers/${userPaperId}/summary`, {
     method: 'POST',
     body: JSON.stringify({ chatRoomId }),
   })
-
+ 
 export const getSummary = async (userPaperId: string) => {
   const result = await request<DataResponse<Summary>>(`/api/papers/${userPaperId}/summary`)
   return result.data
 }
-
+ 
 export const requestComparison = async (userPaperIds: string[], chatRoomId: string) => {
   const result = await request<DataResponse<{ comparisonId: string }>>('/api/comparisons', {
     method: 'POST',
@@ -433,21 +433,34 @@ export const requestComparison = async (userPaperIds: string[], chatRoomId: stri
   })
   return result.data
 }
-
+ 
 export const getComparison = async (comparisonId: string) => {
   const result = await request<DataResponse<Comparison>>(`/api/comparisons/${comparisonId}`)
   return result.data
 }
-
+ 
+// 64번: 내가 했던 비교 목록 (최신순)
+export type ComparisonHistory = {
+  comparisonId: string
+  status: InsightStatus
+  papers: { position: number; title: string }[]
+  createdAt: string
+}
+ 
+export const getComparisonHistory = async () => {
+  const result = await request<CursorResponse<ComparisonHistory>>('/api/comparisons?limit=20')
+  return result.data
+}
+ 
 export const getComparisonCitations = async (comparisonId: string, field: string) => {
   const result = await request<DataResponse<ComparisonCitation[]>>(
     `/api/comparisons/${comparisonId}/citations?field=${field}`
   )
   return result.data
 }
-
+ 
 // ===== 재현 가능성 체크리스트 =====
-
+ 
 export const requestChecklist = async (userPaperId: string, chatRoomId: string) => {
   try {
     await request<void>(`/api/papers/${userPaperId}/checklist`, {
@@ -459,16 +472,16 @@ export const requestChecklist = async (userPaperId: string, chatRoomId: string) 
     if (!(error instanceof ApiError && error.code === 'CHECKLIST_IN_PROGRESS')) throw error
   }
 }
-
+ 
 export const getChecklist = async (userPaperId: string) => {
   const result = await request<DataResponse<Checklist>>(`/api/papers/${userPaperId}/checklist`)
   return result.data
 }
-
+ 
 // ===== 로그아웃 =====
-
+ 
 export const logout = () => request<void>('/api/auth/logout', { method: 'POST' })
-
+ 
 // 요약·비교·체크리스트처럼 바로 완성되지 않는 결과를 completed/failed가 될 때까지 다시 불러옵니다.
 export const waitUntilDone = async <T extends { status: InsightStatus }>(
   load: () => Promise<T>,
@@ -483,9 +496,10 @@ export const waitUntilDone = async <T extends { status: InsightStatus }>(
   }
   throw new ApiError(0, '결과를 만드는 데 시간이 너무 오래 걸립니다.')
 }
-
+ 
 // 내 닉네임 (GET /api/me) — 사이드바 아래 이름 표시용
 export const getMyNickname = async () => {
   const result = await request<DataResponse<{ nickname: string | null }>>('/api/me')
   return result.data.nickname ?? ''
 }
+ 

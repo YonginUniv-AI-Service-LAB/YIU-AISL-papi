@@ -5,18 +5,18 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.2);
 }
-
+ 
 .paper-select-overlay-page {
   position: fixed;
   align-items: center;
 }
-
+ 
 .paper-select-overlay-panel {
   position: absolute;
   align-items: flex-start;
   padding-top: 90px;
 }
-
+ 
 .paper-select-modal {
   width: 520px;
   display: flex;
@@ -27,14 +27,14 @@
   border-radius: 12px;
   background: #ffffff;
 }
-
+ 
 .paper-select-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 4px;
 }
-
+ 
 .paper-select-title {
   margin: 0;
   font-size: 18px;
@@ -42,7 +42,7 @@
   line-height: 22px;
   color: #000000;
 }
-
+ 
 .paper-select-close {
   width: 32px;
   height: 32px;
@@ -54,7 +54,7 @@
   line-height: 30px;
   color: #6b7280;
 }
-
+ 
 .paper-select-search {
   display: flex;
   align-items: center;
@@ -65,7 +65,7 @@
   border-radius: 8px;
   color: #6b7280;
 }
-
+ 
 .paper-select-search-input {
   flex: 1;
   border: none;
@@ -73,17 +73,17 @@
   font-size: 17px;
   line-height: 20px;
 }
-
+ 
 .paper-select-search-input::placeholder {
   color: #9ca3af;
 }
-
+ 
 .paper-select-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-
+ 
 .paper-select-item {
   height: 48px;
   display: flex;
@@ -98,25 +98,25 @@
   color: #000000;
   cursor: pointer;
 }
-
+ 
 .paper-select-item:hover {
   background: #f9fafb;
 }
-
+ 
 .paper-select-checkbox {
   width: 16px;
   height: 16px;
   margin: 0;
   accent-color: #111827;
 }
-
+ 
 .paper-select-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   padding: 0 6px;
 }
-
+ 
 .paper-select-button {
   height: 40px;
   padding: 10px 16px;
@@ -128,25 +128,50 @@
   line-height: 19px;
   color: #ffffff;
 }
-
+ 
 .paper-select-button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-
+ 
 .paper-select-message {
   margin: 8px 0;
   font-size: 14px;
   color: #6b7280;
 }
-
+ 
 /* 처리 중이거나 처리 실패한 논문은 회색으로, 고를 수 없게 */
 .paper-select-item-disabled {
   color: #9ca3af;
   cursor: not-allowed;
 }
-
+ 
 .paper-select-status {
   font-size: 12px;
   color: #9ca3af;
 }
+/* 64번: 이전 비교 목록 창 */
+.compare-history-new {
+  width: 100%;
+}
+ 
+.compare-history-label {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+ 
+.compare-history-item {
+  width: 100%;
+  justify-content: space-between;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+ 
+.compare-history-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+ 

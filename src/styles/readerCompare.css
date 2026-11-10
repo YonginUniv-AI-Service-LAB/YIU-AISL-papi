@@ -17,7 +17,7 @@
   background: #f2f2f7;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
-
+ 
 .reader-compare-header {
   position: relative;
   display: flex;
@@ -25,7 +25,7 @@
   align-items: center;
   min-height: 48px;
 }
-
+ 
 .reader-compare-title {
   margin: 0;
   font-size: 20px;
@@ -33,7 +33,7 @@
   line-height: 24px;
   color: #000000;
 }
-
+ 
 .reader-compare-close {
   position: absolute;
   right: 0;
@@ -47,17 +47,17 @@
   font-weight: 600;
   color: #000000;
 }
-
+ 
 .reader-compare-table {
   overflow: hidden;
   border: 1px solid #d9e2ec;
   border-radius: 10px;
   background: #ffffff;
 }
-
+ 
 .reader-compare-row {
   display: grid;
-  grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1fr); /* 좁은 창에서도 논문 칸이 충분히 넓게 */
+  grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1fr); /* 항목 이름이 한 줄에 들어가면서 논문 칸도 넓게 */
   overflow-wrap: anywhere;
   align-items: center;
   min-height: 50px;
@@ -67,25 +67,26 @@
   line-height: 18px;
   color: #000000;
 }
-
+ 
 .reader-compare-row span {
   padding: 0 12px;
 }
-
+ 
 .reader-compare-row-head {
   min-height: 40px;
   background: #f1f5f9;
 }
-
+ 
 .reader-compare-row-group {
   border-top: 1px solid #eef2f6;
 }
-
+ 
 .reader-compare-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
+  gap: 4px;
+  padding: 0 4px;
+  word-break: keep-all; /* 한 글자씩 세로로 깨지지 않게 단어 단위로 줄바꿈 */
   border: none;
   background: none;
   font-size: 12px;
@@ -93,27 +94,27 @@
   color: #000000;
   text-align: left;
 }
-
+ 
 .reader-compare-chevron {
   display: inline-block;
   font-size: 18px;
   line-height: 18px;
   transform: rotate(-90deg);
 }
-
+ 
 .reader-compare-chevron-open {
   transform: none;
 }
-
+ 
 .reader-compare-row-detail {
   min-height: 44px;
   background: #fafbfc;
 }
-
+ 
 .reader-compare-row .reader-compare-detail-label {
   color: #64748b;
 }
-
+ 
 .reader-compare-pdf-button {
   justify-self: start;
   margin-left: 12px;
@@ -125,7 +126,7 @@
   font-weight: 500;
   color: #000000;
 }
-
+ 
 .reader-compare-summary {
   display: flex;
   flex-direction: column;
@@ -135,7 +136,7 @@
   border-radius: 10px;
   background: #eef6ff;
 }
-
+ 
 .reader-compare-summary-title {
   margin: 0;
   font-size: 16px;
@@ -143,7 +144,7 @@
   line-height: 19px;
   color: #000000;
 }
-
+ 
 .reader-compare-summary-text {
   margin: 0;
   font-size: 15px;
@@ -151,8 +152,9 @@
   line-height: 18px;
   color: #000000;
 }
-
+ 
 /* 비교 창 안의 표·요약이 납작하게 줄어들어 숨지 않게 하고, 창 안에서 스크롤돼요 */
 .reader-compare > * {
   flex-shrink: 0;
 }
+ 
