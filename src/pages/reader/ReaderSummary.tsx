@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import '../../styles/readerSummary.css'
-import type { Summary } from './readerApi'
+import type { Summary, SummaryCitation } from './readerApi'
 
 type ReaderSummaryProps = {
   summary: Summary | null
   message: string
+  onShowEvidence: (citation: SummaryCitation) => void
   onClose: () => void
 }
 
@@ -18,14 +19,14 @@ const summaryFields = [
   { key: 'limitations', title: '한계점' },
 ] as const
 
-function ReaderSummary({ summary, message, onClose }: ReaderSummaryProps) {
+function ReaderSummary({ summary, message, onShowEvidence, onClose }: ReaderSummaryProps) {
   const [isGlossaryOpen, setIsGlossaryOpen] = useState(true)
 
-  const getPageLabel = (field: string) => {
-    const citation = summary?.citations.find((item) => item.field === field && item.pageNo !== null)
-    if (!citation) return null
-    return citation.sectionLabel ? `p.${citation.pageNo} ${citation.sectionLabel}` : `p.${citation.pageNo}`
-  }
+  const getCitation = (field: string) =>
+    summary?.citations.find((item) => item.field === field && item.pageNo !== null) ?? null
+
+  const getPageLabel = (citation: SummaryCitation) =>
+    citation.sectionLabel ? `p.${citation.pageNo} ${citation.sectionLabel}` : `p.${citation.pageNo}`
 
   return (
     <div className="reader-summary">
@@ -39,13 +40,17 @@ function ReaderSummary({ summary, message, onClose }: ReaderSummaryProps) {
       ) : (
         <>
           {summaryFields.map((field) => {
-            const pageLabel = getPageLabel(field.key)
+            const citation = getCitation(field.key)
 
             return (
               <div key={field.key} className="reader-summary-section">
                 <div className="reader-summary-section-header">
                   <h3 className="reader-summary-section-title">{field.title}</h3>
-                  {pageLabel && <span className="reader-summary-page">[{pageLabel}]</span>}
+                  {citation && (
+                    <button className="reader-summary-page" type="button" title="PDF에서 보기" onClick={() => onShowEvidence(citation)}>
+                      [{getPageLabel(citation)}]
+                    </button>
+                  )}
                 </div>
                 <p className="reader-summary-content">{summary.content?.[field.key]}</p>
               </div>

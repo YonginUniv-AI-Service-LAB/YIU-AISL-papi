@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/readerSidebar.css'
-import { deleteChatRoom, getChatRooms, logout, renameChatRoom } from './readerApi'
+import { deleteChatRoom, getChatRooms, getMyNickname, logout, renameChatRoom } from './readerApi'
 import type { ChatRoom } from './readerApi'
 import { FolderIcon, LogoutIcon, PencilIcon, SettingsIcon, SidebarIcon, TrashIcon } from './ReaderIcons'
 
@@ -20,6 +20,15 @@ function ReaderSidebar({ isOpen, onToggle, activeRoomId, roomsVersion }: ReaderS
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [editingChat, setEditingChat] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<ChatRoom | null>(null) // 삭제 확인 창에 띄울 대화
+  const [nickname, setNickname] = useState('')
+
+  // 사이드바 아래에 보여줄 내 닉네임
+  useEffect(() => {
+    getMyNickname()
+      .then((name) => setNickname(name))
+      .catch(() => setNickname(''))
+  }, [])
 
   // 최근 대화 목록 불러오기
   useEffect(() => {
@@ -27,7 +36,8 @@ function ReaderSidebar({ isOpen, onToggle, activeRoomId, roomsVersion }: ReaderS
 
     getChatRooms()
       .then((rooms) => {
-        if (!ignore) setChats(rooms)
+        // 논문이 모두 삭제된 빈 대화는 열 수 없어서 빼고 보여줘요
+        if (!ignore) setChats(rooms.filter((room) => room.papers.length > 0))
       })
       .catch(() => {
         if (!ignore) setChats([])
@@ -48,8 +58,14 @@ function ReaderSidebar({ isOpen, onToggle, activeRoomId, roomsVersion }: ReaderS
     navigate(`/reader/${chat.papers[0].userPaperId}?room=${chat.chatRoomId}`)
   }
 
-  const deleteChat = async (chatRoomId: string) => {
+  // 삭제 메뉴를 누르면 바로 지우지 않고 확인 창을 먼저 띄워요
+  const askDeleteChat = (chat: ChatRoom) => {
     closeMenus()
+    setDeleteTarget(chat)
+  }
+
+  const deleteChat = async (chatRoomId: string) => {
+    setDeleteTarget(null)
 
     try {
       await deleteChatRoom(chatRoomId)
@@ -64,7 +80,7 @@ function ReaderSidebar({ isOpen, onToggle, activeRoomId, roomsVersion }: ReaderS
 
   const startRename = (chat: ChatRoom) => {
     setEditingChat(chat.chatRoomId)
-    setNewName(chat.title)
+    setNewName(chat.title || '새 대화')
     closeMenus()
   }
 
@@ -175,7 +191,7 @@ function ReaderSidebar({ isOpen, onToggle, activeRoomId, roomsVersion }: ReaderS
                   </div>
                 ) : (
                   <>
-                    <span>{chat.title}</span>
+                    <span>{chat.title || '새 대화'}</span>
                     <button className="reader-sidebar-more" type="button" onClick={(event) => { event.stopPropagation(); setMenuChat(chat.chatRoomId) }}>···</button>
                   </>
                 )}
@@ -187,7 +203,7 @@ function ReaderSidebar({ isOpen, onToggle, activeRoomId, roomsVersion }: ReaderS
                       이름 변경
                     </button>
                     <div className="reader-menu-divider" />
-                    <button className="reader-menu-item" type="button" onClick={() => deleteChat(chat.chatRoomId)}>
+                    <button className="reader-menu-item" type="button" onClick={() => askDeleteChat(chat)}>
                       <TrashIcon />
                       삭제
                     </button>
@@ -202,7 +218,7 @@ function ReaderSidebar({ isOpen, onToggle, activeRoomId, roomsVersion }: ReaderS
       {isOpen && (
         <div className="reader-sidebar-user">
           <div className="reader-sidebar-avatar" />
-          <span className="reader-sidebar-user-name">용용이</span>
+          <span className="reader-sidebar-user-name">{nickname}</span>
           <button className="reader-sidebar-more reader-sidebar-user-more" type="button" onClick={() => setIsUserMenuOpen(true)}>···</button>
 
           {isUserMenuOpen && (
@@ -218,6 +234,19 @@ function ReaderSidebar({ isOpen, onToggle, activeRoomId, roomsVersion }: ReaderS
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="reader-delete-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="reader-delete-modal" onClick={(event) => event.stopPropagation()}>
+            <p className="reader-delete-title">대화를 삭제할까요?</p>
+            <p className="reader-delete-text">'{deleteTarget.title || '새 대화'}' 대화와 메시지가 모두 삭제되며 복구할 수 없어요.</p>
+            <div className="reader-delete-actions">
+              <button className="reader-delete-cancel" type="button" onClick={() => setDeleteTarget(null)}>취소</button>
+              <button className="reader-delete-confirm" type="button" onClick={() => deleteChat(deleteTarget.chatRoomId)}>삭제</button>
+            </div>
+          </div>
         </div>
       )}
     </aside>

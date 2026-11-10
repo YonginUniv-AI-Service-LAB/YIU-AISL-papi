@@ -483,3 +483,9 @@ export const waitUntilDone = async <T extends { status: InsightStatus }>(
   }
   throw new ApiError(0, '결과를 만드는 데 시간이 너무 오래 걸립니다.')
 }
+
+// 내 닉네임 (GET /api/me) — 사이드바 아래 이름 표시용
+export const getMyNickname = async () => {
+  const result = await request<DataResponse<{ nickname: string | null }>>('/api/me')
+  return result.data.nickname ?? ''
+}

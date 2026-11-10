@@ -112,6 +112,10 @@
   display: flex;
   gap: 12px;
   padding: 10px 20px;
+  flex-shrink: 0;
+  max-height: 40%; /* 추천 질문이 길어도 대화 영역을 다 덮지 않게 */
+  overflow-y: auto;
+  border-top: 1px solid #f1f1f4;
 }
 
 .reader-chat-suggestions-title {
@@ -131,7 +135,8 @@
 }
 
 .reader-chat-suggestion {
-  height: 41px;
+  min-height: 41px; /* 긴 질문은 줄바꿈되며 높이가 늘어나요 */
+  flex-shrink: 0; /* 창이 좁아져도 말풍선이 눌려서 잘리지 않게 (대신 창 안에서 스크롤) */
   padding: 12px;
   border: 1px solid #d1d5db;
   border-radius: 12px;

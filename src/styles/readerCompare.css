@@ -57,7 +57,8 @@
 
 .reader-compare-row {
   display: grid;
-  grid-template-columns: 150px 1fr 1fr;
+  grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1fr); /* 좁은 창에서도 논문 칸이 충분히 넓게 */
+  overflow-wrap: anywhere;
   align-items: center;
   min-height: 50px;
   padding: 0 12px;
@@ -149,4 +150,9 @@
   font-weight: 400;
   line-height: 18px;
   color: #000000;
+}
+
+/* 비교 창 안의 표·요약이 납작하게 줄어들어 숨지 않게 하고, 창 안에서 스크롤돼요 */
+.reader-compare > * {
+  flex-shrink: 0;
 }

@@ -7,7 +7,7 @@ import ReaderSummary from './ReaderSummary'
 import ReaderCompare from './ReaderCompare'
 import ReaderChecklist from './ReaderChecklist'
 import { cancelAnswer, getChunk, getComparison, getChecklist, getComparisonCitations, getMessage, getMessages, getSuggestedQuestions, getSummary, refreshSuggestedQuestions, requestChecklist, requestComparison, requestSummary, retryAnswer, sendQuestion, waitUntilDone } from './readerApi'
-import type { Checklist, ChecklistResult, Citation, Comparison, QuestionStreamHandlers, Summary } from './readerApi'
+import type { Checklist, ChecklistResult, Citation, Comparison, QuestionStreamHandlers, Summary, SummaryCitation } from './readerApi'
 import type { EvidenceTarget, ReaderPaper } from './ReaderPage'
 
 type ReaderChatProps = {
@@ -50,12 +50,24 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
   const [isAnswering, setIsAnswering] = useState(false)
   const answerController = useRef<AbortController | null>(null)
   const answeringMessageId = useRef<number | null>(null)
+
+  // 채팅 자동 스크롤: 맨 아래를 보고 있을 때만 새 메시지를 따라 내려가요.
+  // (위로 스크롤해서 이전 대화를 읽는 중이면 끌어내리지 않아요)
+  const messagesRef = useRef<HTMLDivElement>(null)
+  const isNearBottom = useRef(true)
+
+  const handleMessagesScroll = () => {
+    const box = messagesRef.current
+    if (!box) return
+    isNearBottom.current = box.scrollHeight - box.scrollTop - box.clientHeight < 80
+  }
   const [isRefreshingSuggestions, setIsRefreshingSuggestions] = useState(false)
 
   const [isSummarySelectOpen, setIsSummarySelectOpen] = useState(false)
   const [isSummaryOpen, setIsSummaryOpen] = useState(false)
   const [summary, setSummary] = useState<Summary | null>(null)
   const [summaryMessage, setSummaryMessage] = useState('')
+  const [summaryPaper, setSummaryPaper] = useState<ReaderPaper | null>(null) // 요약 중인 논문 (페이지 태그 이동용)
 
   const [isCompareSelectOpen, setIsCompareSelectOpen] = useState(false)
   const [comparison, setComparison] = useState<Comparison | null>(null)
@@ -200,6 +212,7 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
   }
 
   const askQuestion = (question: string, fromSuggestion: boolean) => {
+    isNearBottom.current = true // 내가 질문을 보내면 항상 맨 아래로 이동
     if (isAnswering) return
 
     const answer = createMessage({ messageId: null, role: 'ai', status: 'pending', text: '', citations: [] })
@@ -282,6 +295,7 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     setIsSummaryOpen(true)
     setSummary(null)
     setSummaryMessage('요약을 만드는 중이에요. 잠시만 기다려주세요...')
+    setSummaryPaper(paper)
     onCloseCompare()
     closeChecklist()
 
@@ -297,6 +311,18 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
         setSummaryMessage(error instanceof Error ? error.message : '요약을 불러오지 못했습니다.')
       }
     }
+  }
+
+  // 요약의 페이지 태그를 누르면 PDF에서 그 위치로 이동해요 (체크리스트 근거와 같은 방식)
+  const showSummaryEvidence = async (citation: SummaryCitation) => {
+    if (!summaryPaper || citation.pageNo === null) return
+
+    let bbox = null
+    if (citation.chunkId !== null) {
+      bbox = (await getChunk(summaryPaper.userPaperId, citation.chunkId).catch(() => null))?.bbox ?? null
+    }
+
+    onShowPaperEvidence({ userPaperId: summaryPaper.userPaperId, pageNo: citation.pageNo, bbox })
   }
 
   const closeSummary = () => {
@@ -399,6 +425,12 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     }
   }
 
+  // 메시지가 추가되거나 답변이 이어서 나올 때, 맨 아래를 보고 있었다면 따라 내려가요
+  useEffect(() => {
+    const box = messagesRef.current
+    if (box && isNearBottom.current) box.scrollTop = box.scrollHeight
+  }, [messages, isSuggestionOpen])
+
   return (
     <section className="reader-chat">
       <div className="reader-chat-tools">
@@ -411,7 +443,7 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
         )}
       </div>
 
-      <div className="reader-chat-messages">
+      <div className="reader-chat-messages" ref={messagesRef} onScroll={handleMessagesScroll}>
         {messages.map((message) =>
           message.role === 'user' ? (
             <div key={message.key} className={`reader-chat-bubble-user ${message.fromSuggestion ? 'reader-chat-bubble-user-suggested' : ''}`}>
@@ -470,7 +502,7 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
         />
       )}
 
-      {isSummaryOpen && <ReaderSummary summary={summary} message={summaryMessage} onClose={closeSummary} />}
+      {isSummaryOpen && <ReaderSummary summary={summary} message={summaryMessage} onShowEvidence={showSummaryEvidence} onClose={closeSummary} />}
 
       {isChecklistSelectOpen && (
         <ReaderPaperSelectModal

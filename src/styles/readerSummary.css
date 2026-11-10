@@ -175,3 +175,13 @@
   line-height: 16px;
   color: #64748b;
 }
+
+/* 페이지 태그를 버튼으로 바꿔서 누르면 PDF 위치로 이동해요 */
+button.reader-summary-page {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button.reader-summary-page:hover {
+  background: #dbeafe;
+}
