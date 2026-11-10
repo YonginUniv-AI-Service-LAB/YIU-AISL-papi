@@ -1,49 +1,34 @@
 import { useState } from 'react'
 import '../../styles/readerPdfViewer.css'
-import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, HighlighterIcon, PlusIcon } from './ReaderIcons'
+import { CloseIcon, HighlighterIcon, PlusIcon } from './ReaderIcons'
+import ReaderPdfPane from './ReaderPdfPane'
+import type { EvidenceTarget } from './ReaderPage'
 
 type ReaderPdfViewerProps = {
-  showEvidence: boolean
+  roomId: string
+  userPaperId: string
+  title: string
+  initialPage: number
+  evidence: EvidenceTarget | null
   onClose: () => void
   onAddPaper: () => void
 }
 
-type ReaderPdfToolbarProps = {
-  page: string
-}
-
-const evidenceLines = [
-  { width: 90 }, { width: 100 }, { width: 96 }, { width: 100 }, { width: 70 },
-  { width: 100 }, { width: 94 }, { width: 100, evidence: 1 }, { width: 100, evidence: 1 }, { width: 60, evidence: 1 },
-  { width: 100 }, { width: 88 }, { width: 100, evidence: 2 }, { width: 72, evidence: 2 }, { width: 100 },
-  { width: 97 }, { width: 100 }, { width: 84 }, { width: 100 }, { width: 50 },
-]
-
-export function ReaderPdfToolbar({ page }: ReaderPdfToolbarProps) {
-  return (
-    <div className="reader-pdf-toolbar">
-      <button className="reader-pdf-toolbar-button" type="button" aria-label="이전 페이지">
-        <ChevronLeftIcon />
-      </button>
-      <button className="reader-pdf-toolbar-button" type="button" aria-label="다음 페이지">
-        <ChevronRightIcon />
-      </button>
-      <span className="reader-pdf-page">{page}</span>
-      <button className="reader-pdf-toolbar-button" type="button">−</button>
-      <span className="reader-pdf-zoom">100%</span>
-    </div>
-  )
-}
-
-function ReaderPdfViewer({ showEvidence, onClose, onAddPaper }: ReaderPdfViewerProps) {
+function ReaderPdfViewer({ roomId, userPaperId, title, initialPage, evidence, onClose, onAddPaper }: ReaderPdfViewerProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isHighlightMode, setIsHighlightMode] = useState(false)
 
   return (
     <section className="reader-pdf-viewer">
       {isMenuOpen && <div className="reader-menu-backdrop" onClick={() => setIsMenuOpen(false)} />}
 
       <div className="reader-pdf-header">
-        <h2 className="reader-pdf-title">Paper Title</h2>
+        <h2 className="reader-pdf-title">{title}</h2>
+        {isHighlightMode && (
+          <button className="reader-pdf-highlight-mode" type="button" onClick={() => setIsHighlightMode(false)}>
+            형광펜 끄기
+          </button>
+        )}
         <button className="reader-pdf-more" type="button" onClick={() => setIsMenuOpen(true)}>···</button>
 
         {isMenuOpen && (
@@ -52,9 +37,9 @@ function ReaderPdfViewer({ showEvidence, onClose, onAddPaper }: ReaderPdfViewerP
               <PlusIcon />
               논문 추가
             </button>
-            <button className="reader-menu-item reader-menu-item-large" type="button" onClick={() => setIsMenuOpen(false)}>
+            <button className="reader-menu-item reader-menu-item-large" type="button" onClick={() => { setIsMenuOpen(false); setIsHighlightMode(!isHighlightMode) }}>
               <HighlighterIcon />
-              형광펜
+              {isHighlightMode ? '형광펜 끄기' : '형광펜'}
             </button>
             <button className="reader-menu-item reader-menu-item-large reader-menu-item-danger" type="button" onClick={onClose}>
               <CloseIcon />
@@ -64,24 +49,14 @@ function ReaderPdfViewer({ showEvidence, onClose, onAddPaper }: ReaderPdfViewerP
         )}
       </div>
 
-      <ReaderPdfToolbar page={showEvidence ? '3 / 15' : '6 / 15'} />
-
-      <div className="reader-pdf-body">
-        {showEvidence ? (
-          <div className="reader-pdf-paper reader-pdf-paper-evidence">
-            {evidenceLines.map((line, index) => (
-              <div key={index} className="reader-pdf-line-row">
-                {line.evidence && evidenceLines[index - 1]?.evidence !== line.evidence && (
-                  <span className="reader-pdf-evidence-badge">✦ AI 근거{line.evidence}</span>
-                )}
-                <div className={`reader-pdf-line ${line.evidence ? 'reader-pdf-line-highlight' : ''}`} style={{ width: `${line.width}%` }} />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="reader-pdf-paper">PDF</div>
-        )}
-      </div>
+      <ReaderPdfPane
+        userPaperId={userPaperId}
+        roomId={roomId}
+        initialPage={initialPage}
+        evidence={evidence}
+        isHighlightMode={isHighlightMode}
+        showHighlights
+      />
     </section>
   )
 }
