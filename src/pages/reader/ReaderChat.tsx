@@ -497,6 +497,7 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
           showCancel
           maxSelect={1}
           overlay="panel"
+          readyOnly
           onClose={() => setIsSummarySelectOpen(false)}
           onConfirm={(papers) => startSummary(papers[0])}
         />
@@ -511,6 +512,7 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
           showCancel
           maxSelect={1}
           overlay="panel"
+          readyOnly
           onClose={() => setIsChecklistSelectOpen(false)}
           onConfirm={(papers) => startChecklist(papers[0])}
         />
@@ -528,6 +530,7 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
           minSelect={2}
           maxSelect={2}
           overlay="panel"
+          readyOnly
           onClose={() => setIsCompareSelectOpen(false)}
           onConfirm={startComparison}
         />
