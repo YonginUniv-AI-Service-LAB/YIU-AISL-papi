@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../../styles/interest.css'
 
 type Domain = {
@@ -18,6 +19,7 @@ const interests = [
 ]
 
 function InterestPage() {
+  const navigate = useNavigate()
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -136,7 +138,7 @@ function InterestPage() {
         <div className="interest-sidebar-title">논문 챗봇</div>
 
         <nav className="interest-sidebar-menu">
-          <button type="button">▤ 모든 문서함</button>
+          <button type="button" onClick={() => navigate('/library')}>▤ 모든 문서함</button>
           <button type="button">☆ 중요 문서함</button>
           <button type="button">☷ 읽는 중</button>
           <button type="button">✦ AI 챗봇</button>

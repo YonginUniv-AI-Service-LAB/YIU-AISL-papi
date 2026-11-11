@@ -333,7 +333,7 @@ function MemberInformationPage() {
         <div className="member-info-sidebar-title">논문 챗봇</div>
 
         <nav className="member-info-sidebar-menu">
-          <button type="button">▤ 모든 문서함</button>
+          <button type="button" onClick={() => navigate('/library')}>▤ 모든 문서함</button>
           <button type="button">☆ 중요 문서함</button>
           <button type="button">☷ 읽는 중</button>
           <button type="button">✦ AI 챗봇</button>
