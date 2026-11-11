@@ -3,6 +3,7 @@ import type { KeyboardEvent, ChangeEvent, DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LibraryPage.css";
 import { LogoutIcon, SettingsIcon } from "../reader/ReaderIcons";
+import { FolderIcon } from "./LibraryIcons";
 import {
   getPapers,
   getYearFilters,
@@ -321,10 +322,13 @@ function LibraryPage() {
     <div className="library-layout">
       <aside className="sidebar">
       <h1 className="sidebar-title">논문 챗봇</h1>
-      <button className="sidebar-menu-item">
-        <span className="icon">📁</span>
-        모든 문서함
-      </button>
+      {/* 리더 사이드바와 같은 모양: 폴더 아이콘 + 모든 문서함 */}
+      <nav className="sidebar-nav">
+        <button type="button" className="sidebar-nav-item">
+          <FolderIcon />
+          모든 문서함
+        </button>
+      </nav>
       <div className="sidebar-section">
         
         <p className="sidebar-section-title">Recent</p>
