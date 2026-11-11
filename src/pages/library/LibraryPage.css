@@ -2,6 +2,15 @@
     display: flex;
     min-height: 100vh;
     background: #ffffff; /* 전체 페이지 배경: 리더와 같은 흰색 */
+    font-family: 'Inter', sans-serif; /* 로그인/설정 페이지와 같은 글꼴 */
+}
+
+/* 버튼, 입력창은 기본으로 글꼴을 물려받지 않아서 직접 지정 */
+.library-layout button,
+.library-layout input,
+.library-layout select,
+.library-layout textarea {
+    font-family: inherit;
 }
 
 /* ===== 사이드바: 리더 사이드바(readerSidebar.css)와 같은 기준 ===== */
@@ -48,7 +57,7 @@
     border: none;
     border-radius: 8px;
     background: none;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 500;
     line-height: 19px;
     color: #000000;
@@ -73,7 +82,7 @@
 
 .sidebar-section-title {
     margin: 0;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 500;
     line-height: 19px;
     color: #6b7280;
@@ -95,7 +104,7 @@
     align-items: center;
     padding: 0 12px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 400;
     line-height: 17px;
     color: #374151;
@@ -116,7 +125,7 @@
     margin-top: 12px;
     padding: 8px;
     border-top: 1px solid #e5e7eb; /* 계정 영역 위 가로 구분선 (리더에도 같은 선을 넣을 예정) */
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
     line-height: 17px;
     color: #111827;
@@ -147,7 +156,7 @@
     padding: 10px 14px;
     border: 1px solid #ddd;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 15px;
 }
 
 .upload-button {
@@ -155,14 +164,14 @@
     border: 1px solid #e5e7eb; /* 회색 배경 위에서도 버튼이 보이게 흰색 + 테두리 */
     background: #ffffff;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 15px;
     cursor: pointer;
 }
 
 .filter-row {
     display: flex; gap: 20px;
     margin-bottom: 16px;
-    font-size: 13px;
+    font-size: 15px;
 }
 
 .checkbox-label {
@@ -183,7 +192,7 @@
 .year-dropdown {
     background: none;
     border: none;
-    font-size: 13px;
+    font-size: 15px;
     color: #666;
     cursor: pointer;
 }
@@ -199,7 +208,7 @@
     border: none; border-radius: 8px;
     background: #222;
     color: #fff;
-    font-size: 13px; cursor: pointer;
+    font-size: 15px; cursor: pointer;
 }
 
 .card-grid {
@@ -241,7 +250,7 @@
 }
 
 .card-title {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     flex: 1;
     min-width: 0;
@@ -274,7 +283,7 @@
 .close-button {
     border: none;
     background: none;
-    font-size: 14px;
+    font-size: 15px;
     color: #999;
     cursor: pointer;
 }
@@ -287,7 +296,7 @@
 }
 
 .card-info {
-    font-size: 12px;
+    font-size: 15px;
     color: #444;
     display: flex;
     flex-direction: column;
@@ -306,7 +315,7 @@
 }
 
 .summary-link {
-    font-size: 12px;
+    font-size: 15px;
     color: #666;
     text-decoration: none;
 }
@@ -361,7 +370,7 @@
 }
 
 .modal-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
 }
 
@@ -390,7 +399,7 @@
   align-items: center;
   gap: 12px;
   color: #999;
-  font-size: 13px;
+  font-size: 12px;
   margin: 16px 0;
 }
 
@@ -405,7 +414,7 @@
   padding: 10px 14px;
   border: 1px solid #ddd;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
   margin-bottom: 20px;
 }
 
@@ -421,6 +430,7 @@
   border-radius: 8px;
   background: #fff;
   cursor: pointer;
+  font-size: 15px;
 }
 
 .modal-save {
@@ -431,6 +441,7 @@
   background: #222;
   color: #fff;
   cursor: pointer;
+  font-size: 15px;
 }
 
 .paper-card {
@@ -442,7 +453,7 @@
   padding: 0 4px;
   border: none;
   background: none;
-  font-size: 13px;
+  font-size: 15px;
   color: #9ca3af;
   cursor: pointer;
   visibility: hidden;
@@ -473,7 +484,7 @@
   border: 1px solid #93c5fd;
   border-radius: 6px;
   background: #ffffff;
-  font-size: 14px;
+  font-size: 15px;
   color: #000000;
   outline: none;
 }
@@ -491,7 +502,7 @@
   padding: 0;
   border: none;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -525,7 +536,7 @@
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   background: #ffffff;
-  font-size: 12px;
+  font-size: 15px;
   color: #374151;
   cursor: pointer;
 }
@@ -540,7 +551,7 @@
 
 .sidebar-list-empty {
   padding: 0 12px;
-  font-size: 14px;
+  font-size: 12px;
   color: #999;
 }
 
@@ -569,7 +580,7 @@ button.summary-link {
   border: none;
   border-radius: 6px;
   background: none;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #1e1e1e;
   cursor: pointer;
@@ -607,7 +618,7 @@ button.summary-link {
   border: none;
   border-radius: 6px;
   background: none;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
   line-height: 17px;
   color: #111827;
