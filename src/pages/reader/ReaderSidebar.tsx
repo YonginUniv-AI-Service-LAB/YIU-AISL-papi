@@ -148,7 +148,7 @@ function ReaderSidebar({ isOpen, onToggle, activeRoomId, roomsVersion }: ReaderS
       <nav className="reader-sidebar-menu">
         <button className="reader-sidebar-menu-item" type="button" onClick={() => navigate('/library')}>
           <FolderIcon />
-          {isOpen && '모든 문서함'}
+                    {isOpen && <span>모든 문서함</span>}
         </button>
       </nav>
 

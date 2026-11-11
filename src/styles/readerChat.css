@@ -11,6 +11,7 @@
 
 .reader-chat-tools {
   display: flex;
+    flex-wrap: wrap;
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px 8px;
@@ -26,6 +27,7 @@
   font-weight: 500;
   line-height: 17px;
   color: #000000;
+    white-space: nowrap;
 }
 
 .reader-chat-tool-button:hover {
