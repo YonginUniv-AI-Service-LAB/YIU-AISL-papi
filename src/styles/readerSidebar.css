@@ -126,20 +126,18 @@
 }
 
 .reader-sidebar-user {
-  height: 48px;
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 12px;
-  padding: 8px;
-  border-top: 3px solid #e5e7eb;
-  border-radius: 8px;
-  background: #ffffff;
+  padding: 16px 0 0; /* 디자인 통일: 라이브러리와 같은 구분선·위치 */
+  border-top: 1px solid #eeeeee;
 }
 
 .reader-sidebar-avatar {
-  width: 25px;
-  height: 25px;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #b3b3b3;
 }
@@ -192,7 +190,8 @@
 }
 
 .reader-sidebar-user-menu {
-  bottom: 56px;
+  bottom: 40px;
+  box-shadow: none; /* 디자인 통일: 계정 메뉴 그림자 제거 */
   left: 72px;
   min-width: 169px;
 }
