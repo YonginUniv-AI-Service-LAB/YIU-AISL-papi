@@ -197,3 +197,8 @@ export async function getMyNickname(): Promise<string> {
   const result = await request<{ data: { nickname: string | null } }>('/api/me')
   return result.data.nickname ?? ''
 }
+
+// 로그아웃 (POST /api/auth/logout) — 리더 사이드바와 같은 API
+export async function logout(): Promise<void> {
+  await request('/api/auth/logout', { method: 'POST' })
+}

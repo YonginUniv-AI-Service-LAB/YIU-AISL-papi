@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import type { KeyboardEvent, ChangeEvent, DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LibraryPage.css";
+import { LogoutIcon, SettingsIcon } from "../reader/ReaderIcons";
 import {
   getPapers,
   getYearFilters,
@@ -14,6 +15,7 @@ import {
   retryProcessing,
   getRecentChatRooms,
   getMyNickname,
+  logout,
   type LibraryPaper,
   type YearCount,
   type RecentChatRoom,
@@ -116,7 +118,8 @@ function LibraryPage() {
   useEffect(() => {
     if (!processingIds) return; // 처리 중인 카드가 없으면 확인하지 않아요
 
-    const timer = setInterval(async () => {
+    // 페이지에 들어오자마자 한 번 확인하고, 그다음부터 5초마다 확인해요.
+    const checkProcessing = async () => {
       try {
         const items = await getProcessingStatuses(processingIds.split(","));
         setProgressById((prev) => {
@@ -137,7 +140,10 @@ function LibraryPage() {
       } catch {
         // 잠깐 실패해도 다음 5초에 다시 확인해요
       }
-    }, 5000);
+    };
+
+    checkProcessing();
+    const timer = setInterval(checkProcessing, 5000);
 
     return () => clearInterval(timer);
   }, [processingIds]);
@@ -171,6 +177,19 @@ function LibraryPage() {
   // 사이드바: 최근 채팅방과 내 닉네임을 불러옵니다.
   const [recentRooms, setRecentRooms] = useState<RecentChatRoom[]>([]);
   const [nickname, setNickname] = useState("");
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  // 계정 메뉴의 로그아웃: 리더 사이드바와 같은 방식이에요.
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // 서버 로그아웃이 실패해도 이 기기에서는 로그아웃되도록 토큰을 지워요.
+    }
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    navigate("/login");
+  };
 
   useEffect(() => {
     getRecentChatRooms()
@@ -326,7 +345,32 @@ function LibraryPage() {
         </div>
         <div className="sidebar-footer">
           <div className="avatar" />
-          <span>{nickname}</span>
+          <span className="sidebar-user-name">{nickname}</span>
+          <button
+            type="button"
+            className="sidebar-user-more"
+            aria-label="계정 메뉴"
+            onClick={() => setIsUserMenuOpen(true)}
+          >
+            ···
+          </button>
+
+          {isUserMenuOpen && (
+            <>
+              <div className="sidebar-menu-backdrop" onClick={() => setIsUserMenuOpen(false)} />
+              <div className="sidebar-user-menu">
+                <button type="button" className="sidebar-menu-item" onClick={() => navigate("/settings")}>
+                  <SettingsIcon />
+                  설정
+                </button>
+                <div className="sidebar-menu-divider" />
+                <button type="button" className="sidebar-menu-item sidebar-menu-item-danger" onClick={handleLogout}>
+                  <LogoutIcon />
+                  로그아웃
+                </button>
+              </div>
+            </>
+          )}
         </div>
         </aside>
         <main className="main-content">
