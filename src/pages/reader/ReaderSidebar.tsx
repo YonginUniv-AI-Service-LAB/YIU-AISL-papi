@@ -138,7 +138,7 @@ function ReaderSidebar({ isOpen, onToggle, activeRoomId, roomsVersion }: ReaderS
       {(menuChat || isUserMenuOpen) && <div className="reader-menu-backdrop" onClick={closeMenus} />}
 
       <div className="reader-sidebar-header">
-        {isOpen && <h1 className="reader-sidebar-title">논문 챗</h1>}
+        {isOpen && <h1 className="reader-sidebar-title">논문 챗봇</h1>}
         <button className="reader-sidebar-toggle" type="button" aria-label={isOpen ? '사이드바 닫기' : '사이드바 열기'} onClick={onToggle}>
           <SidebarIcon />
         </button>
