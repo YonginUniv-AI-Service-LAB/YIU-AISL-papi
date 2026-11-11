@@ -24,7 +24,7 @@
   border: none;
   border-radius: 6px;
   background: none;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
   line-height: 17px;
   color: #111827;
@@ -37,7 +37,7 @@
 }
 
 .reader-menu-item-large {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   line-height: 19px;
   color: #000000;

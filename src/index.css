@@ -11,7 +11,7 @@ body,
 }
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Inter', sans-serif; /* 디자인 통일: 모든 페이지 Inter */
 }
 
 button,

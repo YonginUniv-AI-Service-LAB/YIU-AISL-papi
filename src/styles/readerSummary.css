@@ -42,7 +42,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #f2f2f7;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   line-height: 20px;
   color: #000000;
@@ -64,7 +64,7 @@
 .reader-summary-section-title,
 .reader-summary-glossary-toggle {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   line-height: 20px;
   color: #0f172a;
@@ -93,7 +93,7 @@
   border: 1px solid #bfdbfe;
   border-radius: 999px;
   background: #eff6ff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 16px;
   color: #2563eb;
@@ -102,7 +102,7 @@
 
 .reader-summary-content {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 400;
   line-height: 20px;
   color: #334155;
@@ -124,7 +124,7 @@
 .reader-checklist-status {
   padding: 4px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 16px;
   white-space: nowrap;
@@ -162,7 +162,7 @@
   border: 1px solid #bfdbfe;
   border-radius: 999px;
   background: #eff6ff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 16px;
   color: #2563eb;
@@ -171,7 +171,7 @@
 
 .reader-checklist-disclaimer {
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 16px;
   color: #64748b;
 }
