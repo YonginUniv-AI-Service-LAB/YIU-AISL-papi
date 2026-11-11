@@ -50,7 +50,7 @@
   border: none;
   border-radius: 8px;
   background: none;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   line-height: 19px;
   color: #000000;
@@ -71,7 +71,7 @@
 
 .reader-sidebar-recent-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 19px;
   color: #6b7280;
@@ -93,7 +93,7 @@
   align-items: center;
   padding: 0 0 0 12px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
   line-height: 17px;
   color: #374151;
@@ -120,7 +120,7 @@
   padding: 0;
   border: none;
   background: none;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #1e1e1e;
 }
@@ -144,7 +144,7 @@
 
 .reader-sidebar-user-name {
   flex: 1;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   line-height: 17px;
   color: #111827;
@@ -203,7 +203,7 @@
   border: 1px solid #93c5fd;
   border-radius: 6px;
   background: #ffffff;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 17px;
   color: #000000;
   outline: none;
@@ -271,14 +271,14 @@
 
 .reader-delete-title {
   margin: 0 0 8px;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   color: #111827;
 }
 
 .reader-delete-text {
   margin: 0 0 20px;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 20px;
   color: #4b5563;
   overflow-wrap: anywhere;
@@ -294,7 +294,7 @@
 .reader-delete-confirm {
   padding: 8px 16px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
 }
 
