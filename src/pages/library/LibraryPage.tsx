@@ -331,7 +331,7 @@ function LibraryPage() {
       </nav>
       <div className="sidebar-section">
         
-        <p className="sidebar-section-title">Recent</p>
+        <p className="sidebar-section-title">최근</p>
         
         <ul className="sidebar-list">
         

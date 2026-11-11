@@ -44,8 +44,7 @@
     flex-direction: column;
     gap: 4px;
     margin-top: 24px;
-    padding-bottom: 24px;
-    border-bottom: 3px solid #e5e7eb;
+    padding-bottom: 24px; /* 리더처럼 모든 문서함 아래 구분선 없음 */
 }
 
 .sidebar-nav-item {
@@ -82,7 +81,7 @@
 
 .sidebar-section-title {
     margin: 0;
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 500;
     line-height: 19px;
     color: #6b7280;
@@ -118,13 +117,12 @@
 /* 아래쪽 사용자 영역 */
 .sidebar-footer {
     position: relative; /* 계정 메뉴를 이 위에 띄우기 위해 */
-    height: 48px;
     display: flex;
     align-items: center;
     gap: 8px;
     margin-top: 12px;
-    padding: 8px;
-    border-top: 1px solid #e5e7eb; /* 계정 영역 위 가로 구분선 (리더에도 같은 선을 넣을 예정) */
+    padding: 16px 0 0; /* 리더 계정 영역과 같은 위치 */
+    border-top: 1px solid #eeeeee; /* 계정 영역 위 가로 구분선 (리더와 같은 색·두께) */
     font-size: 15px;
     font-weight: 500;
     line-height: 17px;
@@ -132,8 +130,8 @@
 }
 
 .avatar {
-    width: 25px;
-    height: 25px;
+    width: 24px;
+    height: 24px;
     flex-shrink: 0;
     border-radius: 50%;
     background: #b3b3b3; /* 리더와 같은 회색 프로필 */
@@ -598,7 +596,7 @@ button.summary-link {
 
 .sidebar-user-menu {
   position: absolute;
-  bottom: 56px; /* 리더 계정 메뉴와 같은 위치 */
+  bottom: 40px; /* 리더 계정 메뉴와 같은 위치 */
   left: 72px;
   z-index: 20;
   min-width: 169px;
