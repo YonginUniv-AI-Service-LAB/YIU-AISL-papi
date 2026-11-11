@@ -4,72 +4,135 @@
     background: #ffffff; /* 전체 페이지 배경: 리더와 같은 흰색 */
 }
 
+/* ===== 사이드바: 리더 사이드바(readerSidebar.css)와 같은 기준 ===== */
 .sidebar {
-    width: 220px;
+    width: 280px;
+    flex-shrink: 0;
     background: #ffffff; /* 사이드바 배경: 흰색 */
     border-right: 1px solid #d1d5db; /* 사이드바와 메인 구분선 */
-    padding: 20px 16px;
+    padding: 24px 16px 20px;
     display: flex;
     flex-direction: column;
 }
 
 .sidebar-title {
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 16px;
+    margin: 0;
+    padding: 8px 4px;
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 24px;
+    color: #000000;
 }
 
+/* "모든 문서함" 메뉴 영역 */
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 24px;
+    padding-bottom: 24px;
+    border-bottom: 3px solid #e5e7eb;
+}
+
+.sidebar-nav-item {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px; /* 아이콘과 글자 사이 간격 */
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 19px;
+    color: #000000;
+    text-align: left;
+    cursor: pointer;
+}
+
+.sidebar-nav-item:hover {
+    background: #eeeff1;
+}
+
+/* 계정 메뉴(설정/로그아웃) 안의 버튼 */
 .sidebar-menu-item {
     display: flex;
     align-items: center;
     gap: 6px;
     background: none;
-     border: none;
+    border: none;
     font-size: 13px;
     padding: 8px 0;
     cursor: pointer;
     text-align: left;
 }
 
+/* 최근 대화 영역 */
 .sidebar-section {
-    margin-top: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 24px;
+    min-height: 0;
 }
 
 .sidebar-section-title {
-    font-size: 12px;
-    color: #999;
-    margin-bottom: 8px;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 19px;
+    color: #6b7280;
 }
 
 .sidebar-list {
     list-style: none;
     padding: 0;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .sidebar-list-item {
+    height: 36px;
     display: flex;
     justify-content: space-between;
-    font-size: 13px;
-    padding: 6px 0;
-    color: #444;
+    align-items: center;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 17px;
+    color: #374151;
     cursor: pointer;
 }
 
+.sidebar-list-item:hover {
+    background: #eeeff1;
+}
+
+/* 아래쪽 사용자 영역 */
 .sidebar-footer {
     position: relative; /* 계정 메뉴를 이 위에 띄우기 위해 */
-    margin-top: auto;
+    height: 48px;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding-top: 16px;
-    border-top: 1px solid #eee;
-    font-size: 13px;
+    margin-top: 12px;
+    padding: 8px;
+    border-top: 3px solid #e5e7eb;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 17px;
+    color: #111827;
 }
 
 .avatar {
-    width: 24px;
-    height: 24px;
+    width: 25px;
+    height: 25px;
+    flex-shrink: 0;
     border-radius: 50%;
     background: #4caf50;
 }
@@ -483,8 +546,8 @@
 }
 
 .sidebar-list-empty {
-  padding: 6px 0;
-  font-size: 13px;
+  padding: 0 12px;
+  font-size: 14px;
   color: #999;
 }
 
