@@ -139,9 +139,6 @@ function InterestPage() {
 
         <nav className="interest-sidebar-menu">
           <button type="button" onClick={() => navigate('/library')}>▤ 모든 문서함</button>
-          <button type="button">☆ 중요 문서함</button>
-          <button type="button">☷ 읽는 중</button>
-          <button type="button">✦ AI 챗봇</button>
         </nav>
 
         <div className="interest-sidebar-divider" />
