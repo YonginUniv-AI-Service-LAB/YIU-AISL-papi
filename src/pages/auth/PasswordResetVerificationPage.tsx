@@ -44,7 +44,7 @@ function PasswordResetVerificationPage() {
       setError('')
 
       const response = await fetch(
-        'http://localhost:8080/api/auth/password-reset/verify',
+        '/api/auth/password-reset/verify',
         {
           method: 'POST',
           headers: {
@@ -98,7 +98,7 @@ function PasswordResetVerificationPage() {
       setError('')
 
       const response = await fetch(
-        'http://localhost:8080/api/auth/password-reset/request',
+        '/api/auth/password-reset/request',
         {
           method: 'POST',
           headers: {

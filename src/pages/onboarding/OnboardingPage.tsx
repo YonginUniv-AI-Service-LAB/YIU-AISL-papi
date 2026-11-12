@@ -67,7 +67,7 @@ function OnboardingPage() {
       }))
 
       const response = await fetch(
-        'http://localhost:8080/api/me/onboarding',
+        '/api/me/onboarding',
         {
           method: 'POST',
           headers: {
@@ -107,7 +107,7 @@ function OnboardingPage() {
       setError('')
 
       const response = await fetch(
-        'http://localhost:8080/api/me/onboarding',
+        '/api/me/onboarding',
         {
           method: 'POST',
           headers: {

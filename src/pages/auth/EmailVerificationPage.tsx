@@ -42,7 +42,7 @@ function EmailVerificationPage() {
       setIsVerifying(true)
       setError('')
 
-      const response = await fetch('http://localhost:8080/api/auth/email-verifications/verify', {
+      const response = await fetch('/api/auth/email-verifications/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ function EmailVerificationPage() {
       setIsResending(true)
       setError('')
 
-      const response = await fetch('http://localhost:8080/api/auth/email-verifications', {
+      const response = await fetch('/api/auth/email-verifications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

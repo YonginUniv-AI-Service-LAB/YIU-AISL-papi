@@ -1,7 +1,7 @@
 // 라이브러리(서재) 화면에서 쓰는 백엔드 API 모음입니다.
 // 기준: 백엔드 develop 브랜치의 PaperController (스웨거의 Paper 영역)
 
-const API_BASE_URL = 'http://localhost:8080'
+const API_BASE_URL = ''
 
 // ===== 타입 =====
 
