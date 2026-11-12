@@ -29,7 +29,7 @@ function InterestPage() {
     const fetchInterests = async () => {
       try {
         const response = await fetch(
-          'http://localhost:8080/api/me/domains',
+          '/api/me/domains',
           {
             method: 'GET',
             headers: {
@@ -97,7 +97,7 @@ function InterestPage() {
       setError('')
 
       const response = await fetch(
-        'http://localhost:8080/api/me/domains',
+        '/api/me/domains',
         {
           method: 'PUT',
           headers: {

@@ -40,7 +40,7 @@ function MemberInformationPage() {
     const fetchMemberInfo = async () => {
       try {
         const response = await fetch(
-          'http://localhost:8080/api/me',
+          '/api/me',
           {
             method: 'GET',
             headers: {
@@ -96,7 +96,7 @@ function MemberInformationPage() {
       setNicknameError('')
 
       const response = await fetch(
-        'http://localhost:8080/api/me/nickname',
+        '/api/me/nickname',
         {
           method: 'PATCH',
           headers: {
@@ -209,7 +209,7 @@ function MemberInformationPage() {
       setPasswordError('')
 
       const response = await fetch(
-        'http://localhost:8080/api/me/password',
+        '/api/me/password',
         {
           method: 'PATCH',
           headers: {
@@ -259,7 +259,7 @@ function MemberInformationPage() {
       setDeleteError('')
 
       const response = await fetch(
-        'http://localhost:8080/api/me',
+        '/api/me',
         {
           method: 'DELETE',
           headers: {
