@@ -1,0 +1,57 @@
+.reader-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+.reader-menu {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.03);
+}
+
+.reader-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 17px;
+  color: #111827;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.reader-menu-item:hover {
+  background: #f3f4f6;
+}
+
+.reader-menu-item-large {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 19px;
+  color: #000000;
+}
+
+.reader-menu-item-danger {
+  color: #dc2626;
+}
+
+.reader-menu-divider {
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.reader-menu-item svg {
+  flex-shrink: 0;
+}
