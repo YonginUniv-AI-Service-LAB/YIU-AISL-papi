@@ -1,7 +1,7 @@
 // 리더 페이지에서 사용하는 백엔드 API 모음입니다.
 // 요청 주소와 데이터 형식은 백엔드(YIU-AISL-papi-Server) develop 브랜치의 Swagger 기준입니다.
  
-const API_BASE_URL = 'http://localhost:8080'
+const API_BASE_URL = '' // 배포: 같은 도메인의 /api/... 로 호출 (로컬은 vite 프록시가 8080으로 넘겨줌)
  
 export class ApiError extends Error {
   status: number
