@@ -15,7 +15,7 @@ function AISettingsPage() {
     const fetchSettings = async () => {
       try {
         const response = await fetch(
-          'http://localhost:8080/api/me/settings',
+          '/api/me/settings',
           {
             method: 'GET',
             headers: {
@@ -67,7 +67,7 @@ function AISettingsPage() {
       setError('')
 
       const response = await fetch(
-        'http://localhost:8080/api/me/settings',
+        '/api/me/settings',
         {
           method: 'PUT',
           headers: {

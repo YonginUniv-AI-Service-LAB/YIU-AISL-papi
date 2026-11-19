@@ -57,7 +57,7 @@ function PasswordResetNewPasswordPage() {
       setError('')
 
       const response = await fetch(
-        'http://localhost:8080/api/auth/password-reset/confirm',
+        '/api/auth/password-reset/confirm',
         {
           method: 'POST',
           headers: {

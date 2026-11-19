@@ -51,7 +51,7 @@ function SignupPage() {
       setIsSending(true)
       setError('')
 
-      const response = await fetch('http://localhost:8080/api/auth/email-verifications', {
+      const response = await fetch('/api/auth/email-verifications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,7 +119,7 @@ function SignupPage() {
       setIsSigningUp(true)
       setError('')
 
-      const response = await fetch('http://localhost:8080/api/auth/sign-up', {
+      const response = await fetch('/api/auth/sign-up', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
