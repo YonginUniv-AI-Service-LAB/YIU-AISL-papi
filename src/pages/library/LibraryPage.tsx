@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { KeyboardEvent, ChangeEvent, DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import "./LibraryPage.css";
+import "../../styles/LibraryPage.css";
 import { LogoutIcon, SettingsIcon } from "../reader/ReaderIcons";
 import { FolderIcon } from "./LibraryIcons";
 import {

@@ -200,5 +200,10 @@ export async function getMyNickname(): Promise<string> {
 
 // 로그아웃 (POST /api/auth/logout) — 리더 사이드바와 같은 API
 export async function logout(): Promise<void> {
-  await request('/api/auth/logout', { method: 'POST' })
+  const refreshToken = localStorage.getItem('refreshToken')
+  await request('/api/auth/logout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  })
 }
