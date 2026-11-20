@@ -8,11 +8,12 @@ import ReaderCompare from './ReaderCompare'
 import ReaderCompareHistory from './ReaderCompareHistory'
 import ReaderChecklist from './ReaderChecklist'
 import { cancelAnswer, getChunk, getComparison, getChecklist, getComparisonCitations, getMessage, getMessages, getSuggestedQuestions, getSummary, refreshSuggestedQuestions, requestChecklist, requestComparison, requestSummary, retryAnswer, sendQuestion, waitUntilDone } from './readerApi'
-import type { Checklist, ChecklistResult, Citation, Comparison, QuestionStreamHandlers, Summary, SummaryCitation } from './readerApi'
+import type { ArtifactType, Checklist, ChecklistResult, Citation, Comparison, QuestionStreamHandlers, Summary, SummaryCitation } from './readerApi'
 import type { EvidenceTarget, ReaderPaper } from './ReaderPage'
  
 type ReaderChatProps = {
   roomId: string
+  roomPapers: ReaderPaper[] // 결과 카드에 논문 이름을 보여줄 때 사용
   isViewerOpen: boolean
   onOpenViewer: () => void
   comparePapers: ReaderPaper[]
@@ -27,11 +28,20 @@ type ReaderChatProps = {
 type ChatMessage = {
   key: number // 화면에서 말풍선을 구분하는 번호
   messageId: number | null // 서버의 메시지 번호 (중지·다시 생성에 사용)
-  role: 'user' | 'ai'
+  role: 'user' | 'ai' | 'artifact' // artifact = 요약·비교·재현 가능성 결과 카드
   status: string // pending, streaming, completed, failed, canceled
   text: string
   citations: Citation[]
   fromSuggestion?: boolean
+  artifactType?: ArtifactType
+  artifactId?: string
+}
+
+// 61번: 결과 카드에 보여줄 이름
+const artifactLabels: Record<ArtifactType, string> = {
+  summary: '📝 요약 결과',
+  checklist: '✅ 재현 가능성 결과',
+  comparison: '📊 비교 결과',
 }
  
 let nextMessageKey = 0
@@ -42,7 +52,7 @@ const isInProgress = (status: string) => status === 'pending' || status === 'str
  
 const toolButtons = ['추천 질문', '비교', '요약', '재현 가능성']
  
-function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompare, onCloseCompare, onShowEvidence, onShowComparisonEvidence, onShowPaperEvidence, onRoomTitleChange }: ReaderChatProps) {
+function ReaderChat({ roomId, roomPapers, isViewerOpen, onOpenViewer, comparePapers, onCompare, onCloseCompare, onShowEvidence, onShowComparisonEvidence, onShowPaperEvidence, onRoomTitleChange }: ReaderChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([])
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false)
@@ -85,6 +95,59 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
   const compareRequestId = useRef(0)
   const checklistRequestId = useRef(0)
  
+  const handleToolClick = (tool: string) => {
+    if (tool === '추천 질문') {
+      setIsSuggestionOpen(!isSuggestionOpen)
+    }
+    if (tool === '요약') {
+      setIsSummarySelectOpen(true)
+    }
+    if (tool === '비교') {
+      setIsCompareHistoryOpen(true) // 이전 비교 목록부터 보여줘요 (없으면 바로 논문 선택 창)
+    }
+    if (tool === '재현 가능성') {
+      setIsChecklistSelectOpen(true)
+    }
+  }
+ 
+  // key가 같은 말풍선 하나만 바꿉니다.
+  const updateMessage = (key: number, update: (message: ChatMessage) => ChatMessage) => {
+    setMessages((current) => current.map((message) => (message.key === key ? update(message) : message)))
+  }
+ 
+  // 61번: 요약·비교·재현 가능성을 요청하면 서버가 대화방에 결과 카드를 남겨요.
+  // 화면에도 같은 카드를 바로 붙이고, 사이드바 순서(최근 대화)도 다시 불러와요.
+  const addArtifactCard = (messageId: number | null, artifactType: ArtifactType, artifactId: string, text: string) => {
+    if (messageId === null) return // 서버가 카드를 만들지 않았으면(이미 만드는 중 등) 화면에도 안 붙여요
+    isNearBottom.current = true
+    setMessages((current) => [...current, createMessage({ messageId, role: 'artifact', status: 'completed', text, citations: [], artifactType, artifactId })])
+    onRoomTitleChange()
+  }
+
+  // 46번: 새로고침 전에 만들던 답변을 2초마다 확인해서 끝나면 보여줍니다.
+  async function followUnfinishedAnswer(key: number, messageId: number, isStopped: () => boolean) {
+    setIsAnswering(true)
+    answeringMessageId.current = messageId
+ 
+    try {
+      while (!isStopped()) {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        if (isStopped()) return
+ 
+        const message = await getMessage(roomId, messageId)
+        updateMessage(key, (current) => ({ ...current, status: message.status, text: message.content ?? '', citations: message.citations ?? [] }))
+        if (!isInProgress(message.status)) break
+      }
+    } catch {
+      updateMessage(key, (current) => ({ ...current, status: 'failed' }))
+    } finally {
+      if (!isStopped()) {
+        answeringMessageId.current = null
+        setIsAnswering(false)
+      }
+    }
+  }
+ 
   // 이전 대화 내용과 추천 질문 불러오기
   useEffect(() => {
     let ignore = false
@@ -95,10 +158,12 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
         // 백엔드는 최신 메시지부터 주므로 화면에는 오래된 순서로 뒤집어서 보여줍니다.
         const history = [...result].reverse().map((message) => createMessage({
           messageId: message.messageId,
-          role: message.role === 'user' ? 'user' : 'ai',
+          role: message.artifactType ? 'artifact' : message.role === 'user' ? 'user' : 'ai',
           status: message.status,
           text: message.content ?? '',
           citations: message.citations ?? [],
+          artifactType: message.artifactType ?? undefined,
+          artifactId: message.artifactId ?? undefined,
         }))
         setMessages(history)
  
@@ -130,50 +195,6 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     // 대화방이 바뀔 때만 다시 불러오면 되므로 roomId만 넣었습니다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId])
- 
-  const handleToolClick = (tool: string) => {
-    if (tool === '추천 질문') {
-      setIsSuggestionOpen(!isSuggestionOpen)
-    }
-    if (tool === '요약') {
-      setIsSummarySelectOpen(true)
-    }
-    if (tool === '비교') {
-      setIsCompareHistoryOpen(true) // 이전 비교 목록부터 보여줘요 (없으면 바로 논문 선택 창)
-    }
-    if (tool === '재현 가능성') {
-      setIsChecklistSelectOpen(true)
-    }
-  }
- 
-  // key가 같은 말풍선 하나만 바꿉니다.
-  const updateMessage = (key: number, update: (message: ChatMessage) => ChatMessage) => {
-    setMessages((current) => current.map((message) => (message.key === key ? update(message) : message)))
-  }
- 
-  // 46번: 새로고침 전에 만들던 답변을 2초마다 확인해서 끝나면 보여줍니다.
-  async function followUnfinishedAnswer(key: number, messageId: number, isStopped: () => boolean) {
-    setIsAnswering(true)
-    answeringMessageId.current = messageId
- 
-    try {
-      while (!isStopped()) {
-        await new Promise((resolve) => setTimeout(resolve, 2000))
-        if (isStopped()) return
- 
-        const message = await getMessage(roomId, messageId)
-        updateMessage(key, (current) => ({ ...current, status: message.status, text: message.content ?? '', citations: message.citations ?? [] }))
-        if (!isInProgress(message.status)) break
-      }
-    } catch {
-      updateMessage(key, (current) => ({ ...current, status: 'failed' }))
-    } finally {
-      if (!isStopped()) {
-        answeringMessageId.current = null
-        setIsAnswering(false)
-      }
-    }
-  }
  
   // 45번 질문 보내기와 48번 다시 생성에서 같이 쓰는 답변 받기
   const receiveAnswer = async (key: number, start: (handlers: QuestionStreamHandlers, signal: AbortSignal) => Promise<void>) => {
@@ -290,7 +311,8 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     onShowEvidence(citation.paperId, citation.chunkId, citation.pageNo)
   }
  
-  const startSummary = async (paper: ReaderPaper) => {
+  // shouldRequest가 false면 결과 카드에서 다시 여는 것이라 새로 요청하지 않아요.
+  const startSummary = async (paper: ReaderPaper, shouldRequest = true) => {
     const requestId = ++summaryRequestId.current
  
     setIsSummarySelectOpen(false)
@@ -302,7 +324,10 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     closeChecklist()
  
     try {
-      await requestSummary(paper.userPaperId, roomId)
+      if (shouldRequest) {
+        const { messageId } = await requestSummary(paper.userPaperId, roomId)
+        addArtifactCard(messageId, 'summary', paper.userPaperId, '논문 요약을 생성했습니다.')
+      }
       const result = await waitUntilDone(() => getSummary(paper.userPaperId), () => requestId !== summaryRequestId.current)
       if (requestId !== summaryRequestId.current) return
  
@@ -343,7 +368,8 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     onCompare(papers)
  
     try {
-      const { comparisonId } = await requestComparison(papers.map((paper) => paper.userPaperId), roomId)
+      const { comparisonId, messageId } = await requestComparison(papers.map((paper) => paper.userPaperId), roomId)
+      addArtifactCard(messageId, 'comparison', comparisonId, '논문 비교를 생성했습니다.')
       const result = await waitUntilDone(() => getComparison(comparisonId), () => requestId !== compareRequestId.current)
       if (requestId !== compareRequestId.current) return
  
@@ -388,7 +414,7 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     onCloseCompare()
   }
  
-  const startChecklist = async (paper: ReaderPaper) => {
+  const startChecklist = async (paper: ReaderPaper, shouldRequest = true) => {
     const requestId = ++checklistRequestId.current
  
     setIsChecklistSelectOpen(false)
@@ -399,7 +425,10 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     setChecklistMessage('재현 가능성을 확인하는 중이에요. 잠시만 기다려주세요...')
  
     try {
-      await requestChecklist(paper.userPaperId, roomId)
+      if (shouldRequest) {
+        const { messageId } = await requestChecklist(paper.userPaperId, roomId)
+        addArtifactCard(messageId, 'checklist', paper.userPaperId, '재현 가능성 체크리스트를 생성했습니다.')
+      }
       const result = await waitUntilDone(() => getChecklist(paper.userPaperId), () => requestId !== checklistRequestId.current)
       if (requestId !== checklistRequestId.current) return
  
@@ -417,6 +446,21 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
     setChecklistPaper(null)
   }
  
+  // 결과 카드를 누르면 저장된 결과를 다시 열어요 (새로 요청하지 않아요)
+  const openArtifact = (message: ChatMessage) => {
+    if (!message.artifactId) return
+    if (message.artifactType === 'comparison') {
+      openPastComparison(message.artifactId)
+      return
+    }
+    const paper = { userPaperId: message.artifactId, title: getPaperName(message.artifactId) }
+    if (message.artifactType === 'summary') startSummary(paper, false)
+    if (message.artifactType === 'checklist') startChecklist(paper, false)
+  }
+
+  const getPaperName = (userPaperId: string) =>
+    roomPapers.find((paper) => paper.userPaperId === userPaperId)?.title ?? ''
+
   const showChecklistEvidence = async (result: ChecklistResult) => {
     if (!checklistPaper || result.pageNo === null) return
  
@@ -474,7 +518,17 @@ function ReaderChat({ roomId, isViewerOpen, onOpenViewer, comparePapers, onCompa
  
       <div className="reader-chat-messages" ref={messagesRef} onScroll={handleMessagesScroll}>
         {messages.map((message) =>
-          message.role === 'user' ? (
+          message.role === 'artifact' && message.artifactType ? (
+            <div key={message.key} className="reader-chat-bubble-ai">
+              <p className="reader-chat-bubble-ai-text">{message.text}</p>
+              {message.artifactType !== 'comparison' && message.artifactId && getPaperName(message.artifactId) && (
+                <p className="reader-chat-answer-note">{getPaperName(message.artifactId)}</p>
+              )}
+              <button className="reader-chat-evidence-button" type="button" onClick={() => openArtifact(message)}>
+                {artifactLabels[message.artifactType]} 보기
+              </button>
+            </div>
+          ) : message.role === 'user' ? (
             <div key={message.key} className={`reader-chat-bubble-user ${message.fromSuggestion ? 'reader-chat-bubble-user-suggested' : ''}`}>
               {message.text}
             </div>

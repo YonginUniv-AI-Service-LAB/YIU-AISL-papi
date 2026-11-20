@@ -101,12 +101,16 @@ export type Citation = {
   quote: string
 }
  
+export type ArtifactType = 'summary' | 'checklist' | 'comparison'
+
 export type Message = {
   messageId: number
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'system' // system = 요약·비교·재현 가능성 결과 카드
   status: string
   content: string
   citations: Citation[]
+  artifactType: ArtifactType | null // 결과 카드일 때만 있어요
+  artifactId: string | null // summary·checklist는 userPaperId, comparison은 comparisonId
 }
  
 export type SuggestedQuestion = {
@@ -415,11 +419,14 @@ export const deleteHighlight = (userPaperId: string, highlightId: number) =>
  
 // ===== 요약 / 비교 =====
  
-export const requestSummary = (userPaperId: string, chatRoomId: string) =>
-  request<void>(`/api/papers/${userPaperId}/summary`, {
+// 61번: chatRoomId를 보내면 서버가 대화방에 결과 카드 메시지를 남기고 그 messageId를 돌려줘요.
+export const requestSummary = async (userPaperId: string, chatRoomId: string) => {
+  const result = await request<DataResponse<{ messageId: number | null }>>(`/api/papers/${userPaperId}/summary`, {
     method: 'POST',
     body: JSON.stringify({ chatRoomId }),
   })
+  return { messageId: result?.data?.messageId ?? null }
+}
  
 export const getSummary = async (userPaperId: string) => {
   const result = await request<DataResponse<Summary>>(`/api/papers/${userPaperId}/summary`)
@@ -427,7 +434,7 @@ export const getSummary = async (userPaperId: string) => {
 }
  
 export const requestComparison = async (userPaperIds: string[], chatRoomId: string) => {
-  const result = await request<DataResponse<{ comparisonId: string }>>('/api/comparisons', {
+  const result = await request<DataResponse<{ comparisonId: string; messageId: number | null }>>('/api/comparisons', {
     method: 'POST',
     body: JSON.stringify({ userPaperIds, chatRoomId }),
   })
@@ -463,13 +470,15 @@ export const getComparisonCitations = async (comparisonId: string, field: string
  
 export const requestChecklist = async (userPaperId: string, chatRoomId: string) => {
   try {
-    await request<void>(`/api/papers/${userPaperId}/checklist`, {
+    const result = await request<DataResponse<{ messageId: number | null }>>(`/api/papers/${userPaperId}/checklist`, {
       method: 'POST',
       body: JSON.stringify({ chatRoomId }),
     })
+    return { messageId: result?.data?.messageId ?? null }
   } catch (error) {
-    // 이미 만드는 중이면(409 CHECKLIST_IN_PROGRESS) 그대로 결과를 기다리면 됩니다.
+    // 이미 만드는 중이면(409 CHECKLIST_IN_PROGRESS) 그대로 결과를 기다리면 됩니다. (이때는 카드가 새로 생기지 않아요)
     if (!(error instanceof ApiError && error.code === 'CHECKLIST_IN_PROGRESS')) throw error
+    return { messageId: null }
   }
 }
  
