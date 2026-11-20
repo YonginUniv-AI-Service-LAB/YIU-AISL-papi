@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../../styles/aiSettings.css'
 
 function AISettingsPage() {
+  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [prompt, setPrompt] = useState('')
   const [version, setVersion] = useState(0)
@@ -13,7 +15,7 @@ function AISettingsPage() {
     const fetchSettings = async () => {
       try {
         const response = await fetch(
-          'http://localhost:8080/api/me/settings',
+          '/api/me/settings',
           {
             method: 'GET',
             headers: {
@@ -65,7 +67,7 @@ function AISettingsPage() {
       setError('')
 
       const response = await fetch(
-        'http://localhost:8080/api/me/settings',
+        '/api/me/settings',
         {
           method: 'PUT',
           headers: {
@@ -110,10 +112,7 @@ function AISettingsPage() {
         <div className="ai-settings-sidebar-title">논문 챗봇</div>
 
         <nav className="ai-settings-sidebar-menu">
-          <button type="button">▤ 모든 문서함</button>
-          <button type="button">☆ 중요 문서함</button>
-          <button type="button">☷ 읽는 중</button>
-          <button type="button">✦ AI 챗봇</button>
+          <button type="button" onClick={() => navigate('/library')}>▤ 모든 문서함</button>
         </nav>
 
         <div className="ai-settings-sidebar-divider" />

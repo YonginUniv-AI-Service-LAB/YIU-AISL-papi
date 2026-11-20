@@ -479,9 +479,15 @@ export const getChecklist = async (userPaperId: string) => {
 }
  
 // ===== 로그아웃 =====
- 
-export const logout = () => request<void>('/api/auth/logout', { method: 'POST' })
- 
+ export const logout = () => {
+  const refreshToken = localStorage.getItem('refreshToken')
+  return request<void>('/api/auth/logout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  })
+}
+
 // 요약·비교·체크리스트처럼 바로 완성되지 않는 결과를 completed/failed가 될 때까지 다시 불러옵니다.
 export const waitUntilDone = async <T extends { status: InsightStatus }>(
   load: () => Promise<T>,

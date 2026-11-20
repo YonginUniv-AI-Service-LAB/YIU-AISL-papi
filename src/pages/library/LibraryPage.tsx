@@ -1,33 +1,291 @@
-import { useState } from "react";
-import type { KeyboardEvent } from "react";
+import { useState, useRef, useEffect } from "react";
+import type { KeyboardEvent, ChangeEvent, DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import "./LibraryPage.css";
+import "../../styles/LibraryPage.css";
+import { LogoutIcon, SettingsIcon } from "../reader/ReaderIcons";
+import { FolderIcon } from "./LibraryIcons";
+import {
+  getPapers,
+  getYearFilters,
+  updatePaperTitle,
+  deletePaper,
+  registerPaperByUrl,
+  registerPaperByFile,
+  updateReadStatus,
+  getProcessingStatuses,
+  retryProcessing,
+  getRecentChatRooms,
+  getMyNickname,
+  logout,
+  type LibraryPaper,
+  type YearCount,
+  type RecentChatRoom,
+} from "./libraryApi";
 
-const papers = [ 
-  {id: 1, title: "논문 제목", author: "안여진 외 2명", org: "용인대학교", year: "2026", journal: "CVPR2025", progress: 60 },
-  { id: 2, title:"논문 제목", status: "준비 완료", author: "안여진 외 2명", org: "용인대학교", year: "2026", journal: "CVPR 2025", progress: 60 },
-  { id: 3, title:"논문 제목", status: "준비 완료", author: "안여진 외 2명", org: "용인대학교", year: "2026", journal: "CVPR 2025", progress: 60 },
-  { id: 4, title:"논문 제목", status: "준비 완료", author: "안여진 외 2명", org: "용인대학교", year: "", journal: "", progress: 0 },
-  { id: 5, title:"논문 제목", status: "준비 완료", author: "안여진 와 2명", org: "용인대학교", year: "", journal: "", progress: 0 },
-  { id: 6, title:"논문 제목", status: "준비 완료", author: "안여진 외 2명", org: "용인대학교", year: "", journal: "", progress: 0 },
+// 화면에 보여줄 처리 상태 이름 (백엔드 processingStatus → 한글)
+const statusLabel: Record<string, string> = {
+  ready: "준비 완료",
+  failed: "처리 실패",
+};
+
+// 아직 처리가 끝나지 않은 상태인지 (queued / parsing / embedding)
+const isProcessing = (status: string) => status !== "ready" && status !== "failed";
+
+// 사용자가 바꾼 제목이 있으면 그걸, 없으면 원제를 보여줍니다.
+const getTitle = (paper: LibraryPaper) => paper.displayTitle ?? paper.title;
+
+// 읽은 페이지 / 전체 페이지 → 진행률(%)
+const getProgress = (paper: LibraryPaper) =>
+  paper.pageCount && paper.readingProgressPage
+    ? Math.round((paper.readingProgressPage / paper.pageCount) * 100)
+    : 0;
+
+// 읽기 상태 체크박스 (화면 이름 → 백엔드 값)
+const readStatusOptions = [
+  { label: "읽음", value: "read" },
+  { label: "안읽음", value: "unread" },
+  { label: "읽는중", value: "reading" },
 ];
 
-const years = ["2026", "2025", "2024", "2023", "2022", "2021"];
+// 정렬 선택지 (화면 이름 → 백엔드 sort 값)
+const sortOptions = [
+  { label: "최신순", value: "recent" },
+  { label: "오래된순", value: "oldest" },
+  { label: "제목순", value: "title" },
+  { label: "최근 열람순", value: "lastOpened" },
+];
 
-const recentItems = ["논문 관련 질문", "논문 내용 요약", "우선 순위 추천"];
 function LibraryPage() {
   const navigate = useNavigate();
-  const [paperList, setPaperList] = useState(papers);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [paperList, setPaperList] = useState<LibraryPaper[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [isUploadOpen, setIsUploadOpen ] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isYearOpen, setIsYearOpen] = useState(false);
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
   const [yearSearch, setYearSearch] = useState("");
+  const ignoreNextClickRef = useRef (false) ;
 
-  const startEditTitle = (id: number, title: string) => {
+  // 검색 / 필터 / 정렬 조건 (바뀌면 목록을 다시 불러와요)
+  const [searchText, setSearchText] = useState(""); // 입력창에 치는 중인 글자
+  const [query, setQuery] = useState(""); // 엔터를 눌러 실제로 검색할 글자
+  const [readStatuses, setReadStatuses] = useState<string[]>([]);
+  const [appliedYears, setAppliedYears] = useState<number[]>([]); // 연도 팝업에서 "확인"을 누른 값
+  const [sort, setSort] = useState("recent");
+  const [reloadKey, setReloadKey] = useState(0); // 업로드 후 목록을 새로 불러올 때 1씩 올려요
+  const [yearOptions, setYearOptions] = useState<YearCount[]>([]);
+  const years = yearOptions.map((item) => String(item.year));
+
+  // 삭제할 논문 / 업로드할 파일·URL
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadUrl, setUploadUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 페이지가 열릴 때, 그리고 검색/필터/정렬 조건이 바뀔 때마다 목록을 불러옵니다.
+  useEffect(() => {
+    let ignore = false; // 조건이 빨리 바뀌면 이전 요청 결과는 무시해요
+
+    getPapers({ q: query, readStatus: readStatuses, year: appliedYears, sort })
+      .then((papers) => {
+        if (ignore) return;
+        setPaperList(papers);
+        setLoadError("");
+      })
+      .catch((error: Error) => {
+        if (!ignore) setLoadError(error.message);
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [query, readStatuses, appliedYears, sort, reloadKey]);
+
+  // 처리 중인 카드가 있으면 5초마다 상태를 확인해서, 새로고침 없이 "준비 완료"로 바꿔요.
+  const processingIds = paperList
+    .filter((paper) => isProcessing(paper.processingStatus))
+    .map((paper) => paper.userPaperId)
+    .join(",");
+  const [progressById, setProgressById] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!processingIds) return; // 처리 중인 카드가 없으면 확인하지 않아요
+
+    // 페이지에 들어오자마자 한 번 확인하고, 그다음부터 5초마다 확인해요.
+    const checkProcessing = async () => {
+      try {
+        const items = await getProcessingStatuses(processingIds.split(","));
+        setProgressById((prev) => {
+          const next = { ...prev };
+          items.forEach((item) => (next[item.userPaperId] = item.progress));
+          return next;
+        });
+        setPaperList((prev) =>
+          prev.map((paper) => {
+            const item = items.find((i) => i.userPaperId === paper.userPaperId);
+            return item ? { ...paper, processingStatus: item.processingStatus } : paper;
+          })
+        );
+        // 하나라도 "준비 완료"가 되면 페이지 수 같은 정보도 새로 받도록 목록을 다시 불러와요
+        if (items.some((item) => item.processingStatus === "ready")) {
+          setReloadKey((key) => key + 1);
+        }
+      } catch {
+        // 잠깐 실패해도 다음 5초에 다시 확인해요
+      }
+    };
+
+    checkProcessing();
+    const timer = setInterval(checkProcessing, 5000);
+
+    return () => clearInterval(timer);
+  }, [processingIds]);
+
+  // 처리 실패한 논문 다시 시도
+  const handleRetry = async (userPaperId: string) => {
+    try {
+      await retryProcessing(userPaperId);
+      setPaperList((prev) =>
+        prev.map((paper) =>
+          paper.userPaperId === userPaperId ? { ...paper, processingStatus: "queued" } : paper
+        )
+      );
+    } catch (error) {
+      alert((error as Error).message);
+    }
+  };
+
+  // 카드의 읽기 상태 바꾸기
+  const handleReadStatusChange = async (userPaperId: string, readStatus: string) => {
+    try {
+      await updateReadStatus(userPaperId, readStatus);
+      setPaperList((prev) =>
+        prev.map((paper) => (paper.userPaperId === userPaperId ? { ...paper, readStatus } : paper))
+      );
+    } catch (error) {
+      alert((error as Error).message);
+    }
+  };
+
+  // 사이드바: 최근 채팅방과 내 닉네임을 불러옵니다.
+  const [recentRooms, setRecentRooms] = useState<RecentChatRoom[]>([]);
+  const [nickname, setNickname] = useState("");
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  // 계정 메뉴의 로그아웃: 리더 사이드바와 같은 방식이에요.
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // 서버 로그아웃이 실패해도 이 기기에서는 로그아웃되도록 토큰을 지워요.
+    }
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    navigate("/login");
+  };
+
+  useEffect(() => {
+    getRecentChatRooms()
+      // 논문이 모두 삭제된 빈 채팅방은 열 수 없어서 빼고 보여줘요
+      .then((rooms) => setRecentRooms(rooms.filter((room) => room.papers.length > 0)))
+      .catch(() => setRecentRooms([]));
+    getMyNickname()
+      .then((name) => setNickname(name))
+      .catch(() => setNickname(""));
+  }, [reloadKey]);
+
+  // 최근 채팅방을 누르면 그 채팅방의 리더로 이동해요 (리더 사이드바와 같은 주소 형식)
+  const openChatRoom = (room: RecentChatRoom) => {
+    navigate(`/reader/${room.papers[0].userPaperId}?room=${room.chatRoomId}`);
+  };
+
+  // 연도 필터에 보여줄 연도 목록을 불러옵니다.
+  useEffect(() => {
+    getYearFilters()
+      .then((items) => setYearOptions(items))
+      .catch(() => setYearOptions([]));
+  }, [reloadKey]);
+
+  // 읽기 상태 체크박스를 누르면 목록 조건에 넣거나 뺍니다.
+  const toggleReadStatus = (value: string) => {
+    setReadStatuses((prev) =>
+      prev.includes(value) ? prev.filter((status) => status !== value) : [...prev, value]
+    );
+  };
+
+  // 검색창에서 엔터를 누르면 검색합니다.
+  const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing) return;
+    if (e.key === "Enter") setQuery(searchText.trim());
+  };
+
+  // 연도 팝업의 "확인": 고른 연도로 목록을 다시 불러옵니다.
+  const applyYears = () => {
+    setAppliedYears(selectedYears.map(Number));
+    setIsYearOpen(false);
+  };
+
+  // 삭제 모달의 "삭제"
+  const handleDelete = async () => {
+    if (!deleteTargetId) return;
+    try {
+      await deletePaper(deleteTargetId);
+      setPaperList((prev) => prev.filter((paper) => paper.userPaperId !== deleteTargetId));
+      setSelectedIds((prev) => prev.filter((id) => id !== deleteTargetId));
+    } catch (error) {
+      alert((error as Error).message);
+    }
+    setDeleteTargetId(null);
+    setIsDeleteOpen(false);
+  };
+
+  // 업로드 모달 닫기 (입력값도 비워요)
+  const closeUpload = () => {
+    setIsUploadOpen(false);
+    setUploadFile(null);
+    setUploadUrl("");
+  };
+
+  // 파일 선택 / 끌어다 놓기
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setUploadFile(e.target.files?.[0] ?? null);
+  };
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setUploadFile(e.dataTransfer.files[0] ?? null);
+  };
+
+  // 업로드 모달의 "저장": 파일이 있으면 파일로, 없으면 URL로 등록해요.
+  const handleUpload = async () => {
+    const url = uploadUrl.trim();
+    if (!uploadFile && !url) {
+      alert("PDF 파일을 고르거나 arXiv URL을 입력해 주세요.");
+      return;
+    }
+    setIsUploading(true);
+    try {
+      if (uploadFile) {
+        await registerPaperByFile(uploadFile);
+      } else {
+        await registerPaperByUrl(url);
+      }
+      closeUpload();
+      setReloadKey((key) => key + 1); // 목록 새로고침
+    } catch (error) {
+      alert((error as Error).message);
+    }
+    setIsUploading(false);
+  };
+
+  const startEditTitle = (id: string, title: string) => {
     setEditingId(id);
     setNewTitle(title);
   };
@@ -36,14 +294,21 @@ function LibraryPage() {
     setEditingId(null);
   };
 
-  const saveTitle = () => {
+  const saveTitle = async () => {
     const title = newTitle.trim();
-
-    if (title !== "") {
-      setPaperList(paperList.map((paper) => (paper.id === editingId ? { ...paper, title } : paper)));
-    }
-
+    const id = editingId;
     setEditingId(null);
+
+    if (!id || title === "") return;
+
+    try {
+      await updatePaperTitle(id, title); // 백엔드에 저장하고
+      setPaperList((prev) =>
+        prev.map((paper) => (paper.userPaperId === id ? { ...paper, displayTitle: title } : paper))
+      ); // 성공하면 화면에도 반영
+    } catch (error) {
+      alert((error as Error).message);
+    }
   };
 
   const handleTitleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -57,20 +322,25 @@ function LibraryPage() {
     <div className="library-layout">
       <aside className="sidebar">
       <h1 className="sidebar-title">논문 챗봇</h1>
-      <button className="sidebar-menu-item">
-        <span className="icon">📁</span>
-        모든 문서함
-      </button>
+      {/* 리더 사이드바와 같은 모양: 폴더 아이콘 + 모든 문서함 */}
+      <nav className="sidebar-nav">
+        <button type="button" className="sidebar-nav-item">
+          <FolderIcon />
+          모든 문서함
+        </button>
+      </nav>
       <div className="sidebar-section">
         
-        <p className="sidebar-section-title">Recent</p>
+        <p className="sidebar-section-title">최근</p>
         
         <ul className="sidebar-list">
         
-          {recentItems.map((item) => (
-            <li key={item} className="sidebar-list-item">
-            <span>+ {item}</span>
-            <span className="more-icon">...</span>
+          {recentRooms.length === 0 && (
+            <li className="sidebar-list-empty">아직 대화가 없어요</li>
+          )}
+          {recentRooms.map((room) => (
+            <li key={room.chatRoomId} className="sidebar-list-item" onClick={() => openChatRoom(room)}>
+            <span className="sidebar-list-title">{room.title || "새 대화"}</span>
           </li>
           ))}
           
@@ -79,28 +349,67 @@ function LibraryPage() {
         </div>
         <div className="sidebar-footer">
           <div className="avatar" />
-          <span>용용이</span>
+          <span className="sidebar-user-name">{nickname}</span>
+          <button
+            type="button"
+            className="sidebar-user-more"
+            aria-label="계정 메뉴"
+            onClick={() => setIsUserMenuOpen(true)}
+          >
+            ···
+          </button>
+
+          {isUserMenuOpen && (
+            <>
+              <div className="sidebar-menu-backdrop" onClick={() => setIsUserMenuOpen(false)} />
+              <div className="sidebar-user-menu">
+                <button type="button" className="sidebar-menu-item" onClick={() => navigate("/settings")}>
+                  <SettingsIcon />
+                  설정
+                </button>
+                <div className="sidebar-menu-divider" />
+                <button type="button" className="sidebar-menu-item sidebar-menu-item-danger" onClick={handleLogout}>
+                  <LogoutIcon />
+                  로그아웃
+                </button>
+              </div>
+            </>
+          )}
         </div>
         </aside>
         <main className="main-content">
           <div className="search-row">
-            <input type="text" className="search-input" placeholder="논문 제목, 저자, ID 검색" />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="논문 제목, 저자, ID 검색"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+            />
             <button className="upload-button" onClick={() => setIsUploadOpen(true)}>업로드</button>
           </div>
           <div className="filter-row">
-            <label className="checkbox-label">
-              <input type="checkbox" /> 읽음
-            </label>
-            <label className="checkbox-label">
-              <input type="checkbox" /> 안읽음
-            </label>
-            <label className="checkbox-label">
-              <input type="checkbox" /> 읽는중
-            </label>
+            {readStatusOptions.map((option) => (
+              <label key={option.value} className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={readStatuses.includes(option.value)}
+                  onChange={() => toggleReadStatus(option.value)}
+                />{" "}
+                {option.label}
+              </label>
+            ))}
           </div>
           <div 
           className="sort-row">
-            <button className="sort-dropdown">최신순 ▾</button>
+            <select className="sort-dropdown" value={sort} onChange={(e) => setSort(e.target.value)}>
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
             <div className="sort-right">
               <button 
                  className="year-dropdown"
@@ -108,7 +417,7 @@ function LibraryPage() {
               >
                  연도 ▾
               </button>
-              <button className="confirm-button">확인</button> 
+              <button className="confirm-button" onClick={applyYears}>확인</button> 
               {isYearOpen && (
                 <div className="year-popup">
                   <input
@@ -144,15 +453,26 @@ function LibraryPage() {
 )}
                </div>          
                </div>
+               {isLoading && <p>논문 목록을 불러오는 중...</p>}
+               {loadError && <p>{loadError}</p>}
                <div className="card-grid">
                {paperList.map((paper) => (
                 <div 
-                  key={paper.id} 
-                  className={`paper-card ${selectedIds.includes(paper.id) ? "selected" : ""}`}
-                  onClick={() => navigate(`/reader/${paper.id}`)}
+                  key={paper.userPaperId} 
+                  className={`paper-card ${selectedIds.includes(paper.userPaperId) ? "selected" : ""}`}
+                  onMouseDown={() => {
+                   ignoreNextClickRef.current = editingId !== null;
+                  }}
+                  onClick={() => {
+                    if (ignoreNextClickRef.current) {
+                       ignoreNextClickRef.current = false;
+                       return;
+                    }
+                    navigate(`/reader/${paper.userPaperId}`);
+                  }}
                   >
                   <div className="card-header">
-                    {editingId === paper.id ? (
+                    {editingId === paper.userPaperId ? (
                       <div className="card-title-edit" onClick={(e) => e.stopPropagation()}>
                         <input
                           className="card-title-input"
@@ -184,19 +504,19 @@ function LibraryPage() {
                         </button>
                       </div>
                     ) : (
-                    <label className="checkbox-laber" onClick={(e) => e.stopPropagation()}>
+                    <label className="card-title-label" onClick={(e) => e.stopPropagation()}>
                       <input 
                         type="checkbox"
-                        checked={selectedIds.includes(paper.id)}
+                        checked={selectedIds.includes(paper.userPaperId)}
                         onChange={ () => {
-                          if (selectedIds.includes(paper.id)) {
-                            setSelectedIds(selectedIds.filter((id) => id !== paper.id));
+                          if (selectedIds.includes(paper.userPaperId)) {
+                            setSelectedIds(selectedIds.filter((id) => id !== paper.userPaperId));
                         } else {
-                          setSelectedIds([...selectedIds, paper.id]);
+                          setSelectedIds([...selectedIds, paper.userPaperId]);
                         }
                        }}
                       />
-                      <span className="card-title">{paper.title}</span>
+                      <span className="card-title">{getTitle(paper)}</span>
                       <button
                         type="button"
                         className="card-title-edit-button"
@@ -204,7 +524,7 @@ function LibraryPage() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          startEditTitle(paper.id, paper.title);
+                          startEditTitle(paper.userPaperId, getTitle(paper));
                         }}
                       >
                         ✎
@@ -213,12 +533,27 @@ function LibraryPage() {
                     )}
                     <div className="card-header-right">
                       <span className="status-badge">
-                        <span className="status-dot" /> {paper.status}
+                        <span className="status-dot" /> {statusLabel[paper.processingStatus] ?? "처리 중"}
+                        {isProcessing(paper.processingStatus) && progressById[paper.userPaperId] !== undefined &&
+                          ` ${progressById[paper.userPaperId]}%`}
                       </span>
+                      {paper.processingStatus === "failed" && (
+                        <button
+                          type="button"
+                          className="retry-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRetry(paper.userPaperId);
+                          }}
+                        >
+                          다시 시도
+                        </button>
+                      )}
                       <button
                         className="close-button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          setDeleteTargetId(paper.userPaperId);
                           setIsDeleteOpen(true);
                         }}
                       >
@@ -230,38 +565,66 @@ function LibraryPage() {
                   <div className="thumbnail" />
                   
                   <div className="card-info">
-                    <div className="info-row">
-                      <span className="info-laber">저자</span>
-                      <span>{paper.author}</span>
-                    </div>
-                    <div className="info-row">
-                      <span className="info-laber">소속 기관</span>
-                      <span>{paper.org}</span>
-                    </div>
-                    {paper.year && (
+                    {paper.authors.length > 0 && (
                       <div className="info-row">
-                        <span className="info-laber">발행연도</span>
-                        <span>{paper.year}</span>
+                        <span className="info-label">저자</span>
+                        <span>{paper.authors.join(", ")}</span>
                       </div>
                     )}
-                    {paper.journal && (
+                    {paper.affiliations.length > 0 && (
                       <div className="info-row">
-                        <span className="info-laber">학회 / 저널</span>
-                        <span>{paper.journal}</span>
+                        <span className="info-label">소속 기관</span>
+                        <span>{paper.affiliations.join(", ")}</span>
+                      </div>
+                    )}
+                    {paper.publishedYear && (
+                      <div className="info-row">
+                        <span className="info-label">발행연도</span>
+                        <span>{paper.publishedYear}</span>
+                      </div>
+                    )}
+                    <div className="info-row">
+                      <span className="info-label">읽기 상태</span>
+                      <select
+                        className="read-status-select"
+                        value={paper.readStatus}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => handleReadStatusChange(paper.userPaperId, e.target.value)}
+                      >
+                        {readStatusOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {paper.venue && (
+                      <div className="info-row">
+                        <span className="info-label">학회 / 저널</span>
+                        <span>{paper.venue}</span>
                       </div>
                     )}
                   </div>
 
 
-                  {paper.progress > 0 && (
+                  {getProgress(paper) > 0 && (
                     <>
-                      <a href="#" className="summary-link">요약 보기 &gt;;</a>
+                      <button
+                        type="button"
+                        className="summary-link"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/reader/${paper.userPaperId}`);
+                        }}
+                      >
+                        요약 보기 &gt;
+                      </button>
                       <div className="progress-row">
                         <span>읽는 중</span>
                         <div className="progress-bar">
-                          <div className="progress-fill" style={{ width: `${paper.progress}%` }} />
+                          <div className="progress-fill" style={{ width: `${getProgress(paper)}%` }} />
                         </div>
-                        <span>{paper.progress}%</span>
+                        <span>{getProgress(paper)}%</span>
                       </div>
                     </>
                   )}
@@ -275,13 +638,31 @@ function LibraryPage() {
             <div className="modal-box">
               <div className="modal-header">
                 <span className="modal-title">PDF 업로드</span>
-                <button className="modal-close" onClick={() => setIsUploadOpen(false)}>x</button>
+                <button className="modal-close" onClick={closeUpload}>x</button>
               </div>
 
-              <div className="upload-dropzone">
+              <div
+                className="upload-dropzone"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDrop}
+              >
                 <div className="upload-icon">⬆️</div>
-                <div>Drag&Drop</div>
-                <div>또는 파일 선택</div>
+                {uploadFile ? (
+                  <div>{uploadFile.name}</div>
+                ) : (
+                  <>
+                    <div>Drag&Drop</div>
+                    <div>또는 파일 선택</div>
+                  </>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  hidden
+                  onChange={handleFileChange}
+                />
             </div>
 
             <div className="upload-divider">
@@ -290,11 +671,19 @@ function LibraryPage() {
               <div className="upload-divider-line" />
             </div>
 
-            <input type="text" className="url-input" placeholder="http://example.com" />
+            <input
+              type="text"
+              className="url-input"
+              placeholder="https://arxiv.org/abs/..."
+              value={uploadUrl}
+              onChange={(e) => setUploadUrl(e.target.value)}
+            />
 
             <div className="modal-footer">
-              <button className="modal-cancel" onClick={() => setIsUploadOpen(false)}>취소</button>
-              <button className="modal-save" onClick={() => setIsUploadOpen(false)}>저장</button>
+              <button className="modal-cancel" onClick={closeUpload}>취소</button>
+              <button className="modal-save" onClick={handleUpload} disabled={isUploading}>
+                {isUploading ? "등록 중..." : "저장"}
+              </button>
             </div>
         </div>
       </div>
@@ -312,7 +701,7 @@ function LibraryPage() {
           
           <div className="modal-footer">
             <button className="modal-cancel" onClick={() => setIsDeleteOpen(false)}>취소</button>
-            <button className="modal-save" onClick ={() => setIsDeleteOpen(false)}>삭제</button> 
+            <button className="modal-save" onClick={handleDelete}>삭제</button> 
           </div>
         </div>
       </div> 
