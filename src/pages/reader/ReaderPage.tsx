@@ -166,6 +166,7 @@ function ReaderPage() {
           <ReaderChat
             key={room.chatRoomId}
             roomId={room.chatRoomId}
+            roomPapers={room.papers.map((paper) => ({ userPaperId: paper.userPaperId, title: getPaperTitle(paper) }))}
             isViewerOpen={isViewerOpen}
             onOpenViewer={() => setIsViewerOpen(true)}
             comparePapers={isCompareMode ? comparePapers : []}
